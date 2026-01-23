@@ -1,0 +1,51 @@
+services:
+  # https://github.com/tus/tusd
+  tusd:
+    image: tusproject/tusd:latest
+    ports:
+      - 127.0.0.1:1080:8080
+    command:
+      - -verbose
+      - -behind-proxy
+      - -max-size=1073741824
+    volumes:
+      - tusd-data:/srv/tusd-data
+
+  # https://github.com/s3rius/rustus
+  rustus:
+    image: s3rius/rustus:latest
+    platform: linux/amd64 # To allow running on ARM MacBooks
+    ports:
+      - 127.0.0.1:1081:1081
+    environment:
+      # Server configuration
+      - RUSTUS_SERVER_HOST=0.0.0.0
+      - RUSTUS_SERVER_PORT=1081
+      - RUSTUS_URL=/files
+      - RUSTUS_MAX_BODY_SIZE=1073741824
+      # Storage configuration (local file storage)
+      - RUSTUS_STORAGE=file-storage
+      - RUSTUS_DATA_DIR=/data
+      - RUSTUS_DIR_STRUCTURE=flat
+      # Enable all extensions
+      - RUSTUS_EXTENSIONS=getting,creation,termination,creation-with-upload,creation-defer-length,concatenation,checksum
+      # Info storage
+      - RUSTUS_INFO_STORAGE=file-info-storage
+      - RUSTUS_INFO_DIR=/data/info
+    volumes:
+      - rustus-data:/data
+
+  # https://github.com/tus/tus-node-server
+  tus-node-server:
+    build:
+      context: .
+      dockerfile: servers/Dockerfile.tus-node-server
+    ports:
+      - 127.0.0.1:1082:8080
+    volumes:
+      - tus-node-data:/srv/uploads
+
+volumes:
+  tusd-data:
+  rustus-data:
+  tus-node-data:

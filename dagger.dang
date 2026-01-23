@@ -1,0 +1,89 @@
+pub description = "Tus Compliance Tests"
+
+enum Server {
+  TUSD
+  RUSTUS
+  TUS_NODE_SERVER
+}
+
+enum ReportFormat {
+  HTML
+  JSON
+  JUNIT
+  TAP
+}
+
+type TusCompliance {
+  let tests: Directory! @defaultPath(path: "/tests/")
+  let servers: Directory! @defaultPath(path: "/servers/")
+
+  pub run(
+    server: [Server!]! = [Server.TUSD, Server.RUSTUS, Server.TUS_NODE_SERVER],
+    report: [ReportFormat!]! = [],
+  ): Directory! {
+    let results = directory
+
+    let ctr = container
+      .from("ghcr.io/orange-opensource/hurl:latest")
+      .withWorkdir("/workspace")
+      .withDirectory("/workspace/results", directory)
+      .withMountedDirectory("/workspace/tests", tests)
+
+    for (s in server) {
+      let service = mapService(s)
+
+      let args = [
+        "hurl",
+        "--verbose",
+        "--variable", "tus_version=1.0.0",
+        "--variable", "base_url=http://tus:8080/files",
+        "--test",
+        "--glob", "tests/**/*.hurl"
+      ]
+
+      for (r in report) {
+        args += case (r) {
+          ReportFormat.HTML => ["--report-html", "results/html/"]
+          ReportFormat.JSON => ["--report-json", "results/json/"]
+          ReportFormat.JUNIT => ["--report-junit", "results/results-junit.xml"]
+          ReportFormat.TAP => ["--report-tap", "results/report.tap"]
+        }
+      }
+
+      ctr = ctr
+        .withServiceBinding("tus", service)
+        .withExec(args, expect: ReturnType.ANY, redirectStderr: "results/stderr.log")
+
+        results = results.withDirectory(toString(s).trim("\"").toLower(), ctr.directory("results"))
+    }
+
+    results
+  }
+
+  let mapService(server: Server!): Service! {
+    case (server) {
+      Server.TUSD => container
+        .from("tusproject/tusd:latest")
+        .withExposedPort(8080)
+        .asService(["-verbose", "-max-size=1073741824"], useEntrypoint: true)
+      Server.RUSTUS => container(platform: "linux/amd64")
+        .from("s3rius/rustus:latest")
+        .withEnvVariable("RUSTUS_SERVER_HOST", "0.0.0.0")
+        .withEnvVariable("RUSTUS_SERVER_PORT", "8080")
+        .withEnvVariable("RUSTUS_URL", "/files")
+        .withEnvVariable("RUSTUS_MAX_BODY_SIZE", "1073741824")
+        .withEnvVariable("RUSTUS_STORAGE", "file-storage")
+        .withEnvVariable("RUSTUS_DATA_DIR", "/data")
+        .withEnvVariable("RUSTUS_DIR_STRUCTURE", "flat")
+        .withEnvVariable("RUSTUS_EXTENSIONS", "getting,creation,termination,creation-with-upload,creation-defer-length,concatenation,checksum")
+        .withEnvVariable("RUSTUS_INFO_STORAGE", "file-info-storage")
+        .withEnvVariable("RUSTUS_INFO_DIR", "/data/info")
+        .withMountedCache("/data", cacheVolume("rustus"))
+        .withExposedPort(8080)
+        .asService
+      Server.TUS_NODE_SERVER => servers.dockerBuild(dockerfile: "Dockerfile.tus-node-server")
+        .withExposedPort(8080)
+        .asService
+    }
+  }
+}

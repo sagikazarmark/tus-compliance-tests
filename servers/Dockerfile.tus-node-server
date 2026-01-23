@@ -1,0 +1,36 @@
+# Dockerfile for tus-node-server
+# https://github.com/tus/tus-node-server
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install tus-node-server
+RUN npm init -y && \
+    npm install @tus/server @tus/file-store
+
+# Create uploads directory
+RUN mkdir -p /srv/uploads
+
+# Create server script
+COPY <<'EOF' /app/server.js
+const { Server } = require('@tus/server');
+const { FileStore } = require('@tus/file-store');
+
+const host = '0.0.0.0';
+const port = 8080;
+
+const server = new Server({
+  path: '/files',
+  datastore: new FileStore({ directory: '/srv/uploads' }),
+  maxSize: 1073741824, // 1GB max upload size
+});
+
+server.listen({ host, port }, () => {
+  console.log(`tus-node-server listening on http://${host}:${port}`);
+});
+EOF
+
+EXPOSE 8080
+
+CMD ["node", "server.js"]
