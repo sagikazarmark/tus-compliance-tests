@@ -7,7 +7,7 @@ A comprehensive test suite for validating tus resumable upload protocol v1.0.0 s
 
 ## Overview
 
-The [test suite](test-suite.md) includes:
+The [test suite](tests/) includes:
 
 - **Core Protocol Tests** - Required for all implementations (25 tests)
 - **Extension Tests** - Modular tests for each tus extension (49 tests)
