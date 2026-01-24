@@ -23,41 +23,48 @@ type TusCompliance {
   ): Directory! {
     let results = directory
 
+    for (s in server) {
+      results = results.withDirectory(
+        toString(s).trim("\"").toLower(),
+        test(mapService(s), report),
+      )
+    }
+
+    results
+  }
+
+  pub test(
+    service: Service!,
+    report: [ReportFormat!]! = [],
+  ): Directory! {
     let ctr = container
       .from("ghcr.io/orange-opensource/hurl:latest")
       .withWorkdir("/workspace")
       .withDirectory("/workspace/results", directory)
       .withMountedDirectory("/workspace/tests", tests)
 
-    for (s in server) {
-      let service = mapService(s)
+    let args = [
+      "hurl",
+      "--verbose",
+      "--variable", "tus_version=1.0.0",
+      "--variable", "base_url=http://tus:8080/files",
+      "--test",
+      "--glob", "tests/**/*.hurl"
+    ]
 
-      let args = [
-        "hurl",
-        "--verbose",
-        "--variable", "tus_version=1.0.0",
-        "--variable", "base_url=http://tus:8080/files",
-        "--test",
-        "--glob", "tests/**/*.hurl"
-      ]
-
-      for (r in report) {
-        args += case (r) {
-          ReportFormat.HTML => ["--report-html", "results/html/"]
-          ReportFormat.JSON => ["--report-json", "results/json/"]
-          ReportFormat.JUNIT => ["--report-junit", "results/results-junit.xml"]
-          ReportFormat.TAP => ["--report-tap", "results/report.tap"]
-        }
+    for (r in report) {
+      args += case (r) {
+        ReportFormat.HTML => ["--report-html", "results/html/"]
+        ReportFormat.JSON => ["--report-json", "results/json/"]
+        ReportFormat.JUNIT => ["--report-junit", "results/results-junit.xml"]
+        ReportFormat.TAP => ["--report-tap", "results/report.tap"]
       }
-
-      ctr = ctr
-        .withServiceBinding("tus", service)
-        .withExec(args, expect: ReturnType.ANY, redirectStderr: "results/stderr.log")
-
-        results = results.withDirectory(toString(s).trim("\"").toLower(), ctr.directory("results"))
     }
 
-    results
+    ctr
+      .withServiceBinding("tus", service)
+      .withExec(args, expect: ReturnType.ANY, redirectStderr: "results/stderr.log")
+      .directory("results")
   }
 
   let mapService(server: Server!): Service! {
