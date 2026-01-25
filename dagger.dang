@@ -6,6 +6,24 @@ enum Server {
   TUS_NODE_SERVER
 }
 
+enum Scope {
+  ALL
+  CORE
+  EXT
+}
+
+enum Extension {
+  CHECKSUM
+  CHECKSUM_TRAILER
+  CONCATENATION
+  CONCATENATION_UNFINISHED
+  CREATION
+  CREATION_DEFER_LENGTH
+  CREATION_WITH_UPLOAD
+  EXPIRATION
+  TERMINATION
+}
+
 enum ReportFormat {
   HTML
   JSON
@@ -17,24 +35,53 @@ type TusCompliance {
   let tests: Directory! @defaultPath(path: "/tests/")
   let servers: Directory! @defaultPath(path: "/servers/")
 
+  """Run the test suite against the specified servers."""
   pub run(
+    """Servers to run the test suite against."""
     server: [Server!]! = [Server.TUSD, Server.RUSTUS, Server.TUS_NODE_SERVER],
+
+    """Choose the format of the test results report."""
     report: [ReportFormat!]! = [],
   ): Directory! {
     let results = directory
 
+    let extensions = [
+      Extension.CHECKSUM,
+      Extension.CHECKSUM_TRAILER,
+      Extension.CONCATENATION,
+      Extension.CONCATENATION_UNFINISHED,
+      Extension.CREATION,
+      Extension.CREATION_DEFER_LENGTH,
+      Extension.CREATION_WITH_UPLOAD,
+      Extension.EXPIRATION,
+      Extension.TERMINATION,
+    ]
+
     for (s in server) {
       results = results.withDirectory(
         toString(s).trim("\"").toLower(),
-        test(mapService(s), report),
+        test(mapService(s), extensions, false, report),
       )
     }
 
     results
   }
 
+  """Run the test suite against a single server."""
   pub test(
     service: Service!,
+    extension: [Extension!]! = [
+      Extension.CHECKSUM,
+      Extension.CHECKSUM_TRAILER,
+      Extension.CONCATENATION,
+      Extension.CONCATENATION_UNFINISHED,
+      Extension.CREATION,
+      Extension.CREATION_DEFER_LENGTH,
+      Extension.CREATION_WITH_UPLOAD,
+      Extension.EXPIRATION,
+      Extension.TERMINATION,
+    ],
+    disableCore: Boolean! = false,
     report: [ReportFormat!]! = [],
   ): Directory! {
     let ctr = container
@@ -48,9 +95,18 @@ type TusCompliance {
       "--verbose",
       "--variable", "tus_version=1.0.0",
       "--variable", "base_url=http://tus:8080/files",
-      "--test",
-      "--glob", "tests/**/*.hurl"
+      "--test"
     ]
+
+    # Always run core tests (unless disabled)
+    if (!disableCore) {
+      args += ["--glob", "tests/core/**/*.hurl"]
+    }
+
+    for (ext in extension) {
+      let extName = toString(ext).trim("\"").toLower().replace("_", "-")
+      args += ["--glob", "tests/extensions/" + extName + "/**/*.hurl"]
+    }
 
     for (r in report) {
       args += case (r) {

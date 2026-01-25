@@ -25,19 +25,62 @@ Test descriptions use RFC 2119 language:
 - **SHOULD** / **SHOULD NOT**: Recommended but may be ignored with good reason
 - **MAY**: Optional features
 
-## Test Categories
+## Test Organization
 
-1. **Core Protocol** - Required for all implementations
-2. **Extension Modules** - One module per extension, independently runnable
-3. **Scenario Tests** - End-to-end workflows
-4. **Optional/Behavioral Tests** - Undefined spec areas with suggested best practices
+Tests are organized by scope:
+
+```
+tests/
+├── core/                          # Core protocol tests (required for all implementations)
+│   ├── cp-err/                    # Error response tests
+│   ├── cp-head/                   # HEAD request tests
+│   ├── cp-opt/                    # OPTIONS request tests
+│   ├── cp-patch/                  # PATCH request tests
+│   └── cp-ver/                    # Version handling tests
+└── extensions/                    # Extension tests (one directory per extension)
+    ├── creation/                  # Creation extension (includes scenarios + optional)
+    ├── creation-defer-length/     # Creation-Defer-Length extension
+    ├── creation-with-upload/      # Creation-With-Upload extension
+    ├── checksum/                  # Checksum extension
+    ├── checksum-trailer/          # Checksum-Trailer extension
+    ├── concatenation/             # Concatenation extension
+    ├── concatenation-unfinished/  # Concatenation-Unfinished extension
+    ├── termination/               # Termination extension
+    └── expiration/                # Expiration extension
+```
+
+Each extension directory contains all tests for that extension:
+- Atomic tests (ext-*): Individual protocol requirement tests
+- Scenario tests (scn-*): End-to-end workflow tests
+- Optional tests (opt-*): Undefined behavior and best practices
+
+## Running Tests
+
+Use the `scope` parameter to run specific test suites:
+
+```bash
+# Run all tests
+dagger call run
+
+# Run only core protocol tests
+dagger call run --scope=core
+
+# Run only creation extension tests
+dagger call run --scope=creation
+
+# Run multiple scopes
+dagger call run --scope=core --scope=creation --scope=checksum
+
+# Run against a specific server
+dagger call run --scope=creation --server=TUSD
+```
 
 ### Compliance Levels
 
 | Level | Requirements |
 |-------|--------------|
 | **Core** | All CP-* tests pass |
-| **Core + Creation** | Core + all EXT-CREATE-* tests pass |
+| **Core + Creation** | Core + all creation extension tests pass |
 | **Core + [Extension]** | Core + specific extension tests pass |
 | **Full** | All required tests for all advertised extensions pass |
 
@@ -88,11 +131,20 @@ Test descriptions use RFC 2119 language:
 | [CP-VER-002](core/cp-ver/cp-ver-002-412-includes-tus-version.hurl) | 412 includes Tus-Version | Atomic | 412 response MUST include `Tus-Version` header with supported versions |
 | [CP-VER-003](core/cp-ver/cp-ver-003-version-1.0.0.hurl) | Version 1.0.0 supported | Atomic | Server MUST support version 1.0.0 |
 
+### CP-ERR: Error Response Handling
+
+| ID | Test Name | Type | Description |
+|----|-----------|------|-------------|
+| [CP-ERR-001](core/cp-err/cp-err-001-response-format.hurl) | Error response format | Atomic | Error responses SHOULD include descriptive body |
+| [CP-ERR-002](core/cp-err/cp-err-002-validation-errors.hurl) | Validation error details | Atomic | Validation errors SHOULD indicate which field/header failed |
+
 ## Extension Test Modules
 
-### EXT-CREATE: Creation Extension
+### Creation Extension
 
 **Prerequisite:** Server advertises `creation` in `Tus-Extension`
+
+#### Atomic Tests
 
 | ID | Test Name | Type | Description |
 |----|-----------|------|-------------|
@@ -106,7 +158,51 @@ Test descriptions use RFC 2119 language:
 | [EXT-CREATE-008](extensions/creation/ext-create-008-zero-length.hurl) | POST zero-length upload | Atomic | `Upload-Length: 0` MUST be accepted (empty file) |
 | [EXT-CREATE-009](extensions/creation/ext-create-009-location-absolute.hurl) | Location URL is absolute | Atomic | `Location` header MUST be an absolute URL or resolvable |
 
-### EXT-CREATE-DEFER: Creation-Defer-Length Extension
+#### Scenario Tests
+
+| ID | Test Name | Description |
+|----|-----------|-------------|
+| [SCN-BASIC-001](extensions/creation/scn-basic-001-complete-small.hurl) | Complete small upload | Create upload, send all bytes in single PATCH, verify completion |
+| [SCN-BASIC-002](extensions/creation/scn-basic-002-chunked-upload.hurl) | Complete chunked upload | Create upload, send bytes across multiple PATCH requests |
+| [SCN-BASIC-003](extensions/creation/scn-basic-003-resume-interrupted.hurl) | Resume interrupted upload | Create, partial PATCH, HEAD to get offset, resume with second PATCH |
+| [SCN-BASIC-004](extensions/creation/scn-basic-004-zero-byte.hurl) | Zero-byte upload | Create upload with `Upload-Length: 0`, verify immediate completion |
+| [SCN-RESUME-001](extensions/creation/scn-resume-001-from-zero.hurl) | Resume from zero | Create upload, never PATCH, HEAD returns offset 0, complete upload |
+| [SCN-RESUME-002](extensions/creation/scn-resume-002-from-middle.hurl) | Resume from middle | Upload 50%, simulate disconnect, HEAD, resume from reported offset |
+| [SCN-RESUME-003](extensions/creation/scn-resume-003-near-completion.hurl) | Resume near completion | Upload 99%, disconnect, resume final bytes |
+| [SCN-RESUME-004](extensions/creation/scn-resume-004-multiple-cycles.hurl) | Multiple resume cycles | Create, upload 25%, resume to 50%, resume to 75%, complete |
+| [SCN-ERROR-001](extensions/creation/scn-error-001-offset-mismatch.hurl) | Recover from offset mismatch | Attempt PATCH with wrong offset, get 409, HEAD to correct, retry |
+
+#### Optional Tests
+
+| ID | Test Name | Spec Gap | Suggested Best Practice |
+|----|-----------|----------|------------------------|
+| [OPT-META-001](extensions/creation/opt-meta-001-invalid-base64.hurl) | Invalid base64 in metadata value | Spec doesn't define error response | Return 400 Bad Request with descriptive error |
+| [OPT-META-002](extensions/creation/opt-meta-002-duplicate-keys.hurl) | Duplicate metadata keys | "Keys MUST be unique" but no error specified | Return 400 Bad Request |
+| [OPT-META-003](extensions/creation/opt-meta-003-empty-value.hurl) | Empty metadata value | Spec allows empty values but unclear | Accept empty base64-encoded values |
+| [OPT-META-004](extensions/creation/opt-meta-004-size-limits.hurl) | Metadata size limits | No maximum metadata size specified | Document limits; return 413 if exceeded |
+| [OPT-META-005](extensions/creation/opt-meta-005-non-ascii-keys.hurl) | Non-ASCII metadata keys | Spec says "ASCII" but no error specified | Return 400 Bad Request for non-ASCII keys |
+| [OPT-META-006](extensions/creation/opt-meta-006-retrieval.hurl) | Metadata retrieval | Spec doesn't require returning metadata on HEAD | Return `Upload-Metadata` on HEAD for debugging |
+| [OPT-URL-001](extensions/creation/opt-url-001-relative-location.hurl) | Relative Location header | Spec doesn't mandate absolute URLs | Always return absolute URLs for client compatibility |
+| [OPT-URL-002](extensions/creation/opt-url-002-url-format.hurl) | URL format and structure | "Left for implementation to decide" | Use opaque, non-guessable identifiers |
+| [OPT-URL-003](extensions/creation/opt-url-003-cross-origin.hurl) | Cross-origin Location | No CORS requirements specified | Support CORS headers if serving web clients |
+| [OPT-PARTIAL-001](extensions/creation/opt-partial-001-accepts-partial.hurl) | Server accepts partial PATCH | Spec says "store maximum" but behavior unclear | Accept partial data, update offset to bytes received |
+| [OPT-PARTIAL-002](extensions/creation/opt-partial-002-response-code.hurl) | Partial write response code | Should partial acceptance be 204 or different? | Return 204 with accurate `Upload-Offset` |
+| [OPT-PARTIAL-003](extensions/creation/opt-partial-003-client-notification.hurl) | Client notification of partial | How to signal incomplete write? | `Upload-Offset` in response reflects actual bytes stored |
+| [OPT-CONC-001](extensions/creation/opt-conc-001-concurrent-patch.hurl) | Concurrent PATCH requests | No concurrency requirements specified | Serialize writes; second request gets 409 or waits |
+| [OPT-CONC-002](extensions/creation/opt-conc-002-head-during-patch.hurl) | Concurrent HEAD during PATCH | Can HEAD be served during active write? | Return last committed offset |
+| [OPT-CONC-003](extensions/creation/opt-conc-003-concurrent-creation.hurl) | Concurrent upload creation | Same file uploaded twice simultaneously | Each gets unique upload URL |
+| [OPT-COMP-001](extensions/creation/opt-comp-001-patch-completed.hurl) | PATCH on completed upload | Spec doesn't define behavior | Return 400 or 409; indicate upload is complete |
+| [OPT-COMP-002](extensions/creation/opt-comp-002-head-completed.hurl) | HEAD on completed upload | Spec doesn't distinguish complete vs incomplete | Return `Upload-Offset` == `Upload-Length` |
+| [OPT-COMP-003](extensions/creation/opt-comp-003-notification.hurl) | Upload completion notification | No callback/webhook mechanism | Optionally support `Upload-Complete` header or webhook |
+| [OPT-ERR-002](extensions/creation/opt-err-002-409-includes-offset.hurl) | 409 Conflict includes current offset | Spec doesn't require it | Include `Upload-Offset` header in 409 response |
+| [OPT-TIME-001](extensions/creation/opt-time-001-idle-timeout.hurl) | Idle connection timeout | No timeout requirements | Document timeouts; minimum 30 seconds recommended |
+| [OPT-TIME-002](extensions/creation/opt-time-002-slow-client.hurl) | Slow client handling | No minimum transfer rate specified | Allow configurable minimum rate or timeout |
+| [OPT-TIME-003](extensions/creation/opt-time-003-timeout-during-write.hurl) | Timeout during write | What happens to partial data? | Store received bytes; client can resume |
+| [OPT-STORE-001](extensions/creation/opt-store-001-storage-full.hurl) | Storage full during upload | No specific error code | Return 507 Insufficient Storage or 413 |
+| [OPT-STORE-002](extensions/creation/opt-store-002-length-change.hurl) | Upload-Length change attempt | Only "immutable once set" mentioned | Return 400 with clear error message |
+| [OPT-STORE-003](extensions/creation/opt-store-003-very-large.hurl) | Very large Upload-Length | No maximum file size requirement beyond Tus-Max-Size | Validate against Tus-Max-Size; return 413 |
+
+### Creation-Defer-Length Extension
 
 **Prerequisite:** Server advertises `creation-defer-length` in `Tus-Extension`
 
@@ -118,7 +214,7 @@ Test descriptions use RFC 2119 language:
 | [EXT-DEFER-004](extensions/creation-defer-length/ext-defer-004-length-immutable.hurl) | Upload-Length immutable | Atomic | Once `Upload-Length` set, subsequent changes MUST be rejected |
 | [EXT-DEFER-005](extensions/creation-defer-length/ext-defer-005-mutual-exclusion.hurl) | Defer and Length mutual exclusion | Atomic | POST with both `Upload-Defer-Length` and `Upload-Length` MUST be rejected |
 
-### EXT-CREATE-UPLOAD: Creation-With-Upload Extension
+### Creation-With-Upload Extension
 
 **Prerequisite:** Server advertises `creation-with-upload` in `Tus-Extension`
 
@@ -130,21 +226,11 @@ Test descriptions use RFC 2119 language:
 | [EXT-CWU-004](extensions/creation-with-upload/ext-cwu-004-partial-acceptance.hurl) | Partial body acceptance | Atomic | Server MAY accept fewer bytes than sent; offset indicates actual |
 | [EXT-CWU-005](extensions/creation-with-upload/ext-cwu-005-complete-in-post.hurl) | Complete upload in POST | Atomic | If body size equals `Upload-Length`, upload is complete |
 
-### EXT-EXPIRE: Expiration Extension
-
-**Prerequisite:** Server advertises `expiration` in `Tus-Extension`
-
-| ID | Test Name | Type | Description |
-|----|-----------|------|-------------|
-| [EXT-EXPIRE-001](extensions/expiration/ext-expire-001-post-response.hurl) | Upload-Expires in POST response | Atomic | Creation response SHOULD include `Upload-Expires` header |
-| [EXT-EXPIRE-002](extensions/expiration/ext-expire-002-patch-response.hurl) | Upload-Expires in PATCH response | Atomic | PATCH response SHOULD include `Upload-Expires` header |
-| [EXT-EXPIRE-003](extensions/expiration/ext-expire-003-format.hurl) | Upload-Expires format | Atomic | Header MUST use RFC 9110 datetime format |
-| [EXT-EXPIRE-004](extensions/expiration/ext-expire-004-expired-404-410.hurl) | Expired upload returns 404/410 | Atomic | Access after expiration MUST return 404 or 410 |
-| [EXT-EXPIRE-005](extensions/expiration/ext-expire-005-410-tracked.hurl) | 410 for tracked expirations | Atomic | If server tracks expired uploads, SHOULD return 410 Gone |
-
-### EXT-CHECKSUM: Checksum Extension
+### Checksum Extension
 
 **Prerequisite:** Server advertises `checksum` in `Tus-Extension`
+
+#### Atomic Tests
 
 | ID | Test Name | Type | Description |
 |----|-----------|------|-------------|
@@ -157,7 +243,21 @@ Test descriptions use RFC 2119 language:
 | [EXT-CSUM-007](extensions/checksum/ext-csum-007-format-validation.hurl) | Checksum format validation | Atomic | Format MUST be `algorithm base64-hash` (space-separated) |
 | [EXT-CSUM-008](extensions/checksum/ext-csum-008-retry-after-failure.hurl) | Retry after checksum failure | Atomic | Client can retry same chunk after 460 response |
 
-### EXT-CHECKSUM-TRAILER: Checksum Trailer Extension
+#### Scenario Tests
+
+| ID | Test Name | Description |
+|----|-----------|-------------|
+| [SCN-ERROR-002](extensions/checksum/scn-error-002-checksum-failure.hurl) | Recover from checksum failure | Send bad checksum, get 460, retry with correct checksum |
+
+#### Optional Tests
+
+| ID | Test Name | Spec Gap | Suggested Best Practice |
+|----|-----------|----------|------------------------|
+| [OPT-CSUM-001](extensions/checksum/opt-csum-001-empty-chunk.hurl) | Checksum on empty chunk | Spec doesn't address empty body with checksum | Accept; validate checksum of empty data |
+| [OPT-CSUM-002](extensions/checksum/opt-csum-002-multiple-checksums.hurl) | Multiple checksums | Can client send multiple algorithms? | Accept first valid; ignore others |
+| [OPT-CSUM-003](extensions/checksum/opt-csum-003-creation-with-upload.hurl) | Checksum on creation-with-upload | Checksum for POST body? | Support `Upload-Checksum` on POST with body |
+
+### Checksum-Trailer Extension
 
 **Prerequisite:** Server advertises `checksum-trailer` in `Tus-Extension`
 
@@ -166,7 +266,7 @@ Test descriptions use RFC 2119 language:
 | [EXT-CSUM-TR-001](extensions/checksum-trailer/ext-csum-tr-001-checksum-trailer.hurl) | Checksum as trailer | Atomic | Server MUST accept `Upload-Checksum` as HTTP trailer |
 | [EXT-CSUM-TR-002](extensions/checksum-trailer/ext-csum-tr-002-chunked-encoding.hurl) | Trailer requires chunked encoding | Atomic | Trailer usage requires `Transfer-Encoding: chunked` |
 
-### EXT-TERM: Termination Extension
+### Termination Extension
 
 **Prerequisite:** Server advertises `termination` in `Tus-Extension`
 
@@ -178,9 +278,11 @@ Test descriptions use RFC 2119 language:
 | [EXT-TERM-004](extensions/termination/ext-term-004-non-existent.hurl) | DELETE non-existent resource | Atomic | DELETE on missing resource MUST return 404 |
 | [EXT-TERM-005](extensions/termination/ext-term-005-completed-upload.hurl) | DELETE completed upload | Atomic | DELETE on completed upload SHOULD succeed |
 
-### EXT-CONCAT: Concatenation Extension
+### Concatenation Extension
 
 **Prerequisite:** Server advertises `concatenation` in `Tus-Extension`
+
+#### Atomic Tests
 
 | ID | Test Name | Type | Description |
 |----|-----------|------|-------------|
@@ -193,7 +295,14 @@ Test descriptions use RFC 2119 language:
 | [EXT-CONCAT-007](extensions/concatenation/ext-concat-007-partials-complete.hurl) | Partial uploads must be complete | Atomic | Final creation with incomplete partials MUST fail (unless `concatenation-unfinished`) |
 | [EXT-CONCAT-008](extensions/concatenation/ext-concat-008-invalid-partial-url.hurl) | Invalid partial URL rejected | Atomic | Non-existent partial URL in final MUST be rejected |
 
-### EXT-CONCAT-UNFINISHED: Concatenation-Unfinished Extension
+#### Scenario Tests
+
+| ID | Test Name | Description |
+|----|-----------|-------------|
+| [SCN-CONCAT-001](extensions/concatenation/scn-concat-001-parallel-assembly.hurl) | Parallel upload assembly | Create 3 partials, upload in parallel, create final, verify size |
+| [SCN-CONCAT-002](extensions/concatenation/scn-concat-002-sequential-partial.hurl) | Sequential partial upload | Create and complete partials sequentially, then concatenate |
+
+### Concatenation-Unfinished Extension
 
 **Prerequisite:** Server advertises `concatenation-unfinished` in `Tus-Extension`
 
@@ -202,124 +311,30 @@ Test descriptions use RFC 2119 language:
 | [EXT-CONCAT-UF-001](extensions/concatenation-unfinished/ext-concat-uf-001-incomplete-partials.hurl) | Final with incomplete partials | Atomic | Server MUST accept final creation while partials in progress |
 | [EXT-CONCAT-UF-002](extensions/concatenation-unfinished/ext-concat-uf-002-offset-updates.hurl) | Final offset updates | Atomic | Final `Upload-Offset` MUST update as partials complete |
 
-## Scenario Tests
+### Expiration Extension
 
-### SCN-BASIC: Basic Upload Scenarios
+**Prerequisite:** Server advertises `expiration` in `Tus-Extension`
 
-| ID | Test Name | Description |
-|----|-----------|-------------|
-| [SCN-BASIC-001](scenarios/basic/scn-basic-001-complete-small.hurl) | Complete small upload | Create upload, send all bytes in single PATCH, verify completion |
-| [SCN-BASIC-002](scenarios/basic/scn-basic-002-chunked-upload.hurl) | Complete chunked upload | Create upload, send bytes across multiple PATCH requests |
-| [SCN-BASIC-003](scenarios/basic/scn-basic-003-resume-interrupted.hurl) | Resume interrupted upload | Create, partial PATCH, HEAD to get offset, resume with second PATCH |
-| [SCN-BASIC-004](scenarios/basic/scn-basic-004-zero-byte.hurl) | Zero-byte upload | Create upload with `Upload-Length: 0`, verify immediate completion |
+#### Atomic Tests
 
-### SCN-RESUME: Resumption Scenarios
+| ID | Test Name | Type | Description |
+|----|-----------|------|-------------|
+| [EXT-EXPIRE-001](extensions/expiration/ext-expire-001-post-response.hurl) | Upload-Expires in POST response | Atomic | Creation response SHOULD include `Upload-Expires` header |
+| [EXT-EXPIRE-002](extensions/expiration/ext-expire-002-patch-response.hurl) | Upload-Expires in PATCH response | Atomic | PATCH response SHOULD include `Upload-Expires` header |
+| [EXT-EXPIRE-003](extensions/expiration/ext-expire-003-format.hurl) | Upload-Expires format | Atomic | Header MUST use RFC 9110 datetime format |
+| [EXT-EXPIRE-004](extensions/expiration/ext-expire-004-expired-404-410.hurl) | Expired upload returns 404/410 | Atomic | Access after expiration MUST return 404 or 410 |
+| [EXT-EXPIRE-005](extensions/expiration/ext-expire-005-410-tracked.hurl) | 410 for tracked expirations | Atomic | If server tracks expired uploads, SHOULD return 410 Gone |
 
-| ID | Test Name | Description |
-|----|-----------|-------------|
-| [SCN-RESUME-001](scenarios/resume/scn-resume-001-from-zero.hurl) | Resume from zero | Create upload, never PATCH, HEAD returns offset 0, complete upload |
-| [SCN-RESUME-002](scenarios/resume/scn-resume-002-from-middle.hurl) | Resume from middle | Upload 50%, simulate disconnect, HEAD, resume from reported offset |
-| [SCN-RESUME-003](scenarios/resume/scn-resume-003-near-completion.hurl) | Resume near completion | Upload 99%, disconnect, resume final bytes |
-| [SCN-RESUME-004](scenarios/resume/scn-resume-004-multiple-cycles.hurl) | Multiple resume cycles | Create, upload 25%, resume to 50%, resume to 75%, complete |
-
-### SCN-ERROR: Error Recovery Scenarios
+#### Scenario Tests
 
 | ID | Test Name | Description |
 |----|-----------|-------------|
-| [SCN-ERROR-001](scenarios/error/scn-error-001-offset-mismatch.hurl) | Recover from offset mismatch | Attempt PATCH with wrong offset, get 409, HEAD to correct, retry |
-| [SCN-ERROR-002](scenarios/error/scn-error-002-checksum-failure.hurl) | Recover from checksum failure | Send bad checksum, get 460, retry with correct checksum |
-| [SCN-ERROR-003](scenarios/error/scn-error-003-expired-upload.hurl) | Handle expired upload | Attempt resume on expired upload, get 404/410, create new upload |
+| [SCN-ERROR-003](extensions/expiration/scn-error-003-expired-upload.hurl) | Handle expired upload | Attempt resume on expired upload, get 404/410, create new upload |
 
-### SCN-CONCAT: Concatenation Scenarios
-
-| ID | Test Name | Description |
-|----|-----------|-------------|
-| [SCN-CONCAT-001](scenarios/concat/scn-concat-001-parallel-assembly.hurl) | Parallel upload assembly | Create 3 partials, upload in parallel, create final, verify size |
-| [SCN-CONCAT-002](scenarios/concat/scn-concat-002-sequential-partial.hurl) | Sequential partial upload | Create and complete partials sequentially, then concatenate |
-
-## Optional Tests: Undefined Behavior
-
-These tests cover areas where the specification allows implementation discretion. They document observed behavior and suggest best practices. Implementations may legitimately differ.
-
-### OPT-META: Metadata Handling
+#### Optional Tests
 
 | ID | Test Name | Spec Gap | Suggested Best Practice |
 |----|-----------|----------|------------------------|
-| [OPT-META-001](optional/metadata/opt-meta-001-invalid-base64.hurl) | Invalid base64 in metadata value | Spec doesn't define error response | Return 400 Bad Request with descriptive error |
-| [OPT-META-002](optional/metadata/opt-meta-002-duplicate-keys.hurl) | Duplicate metadata keys | "Keys MUST be unique" but no error specified | Return 400 Bad Request |
-| [OPT-META-003](optional/metadata/opt-meta-003-empty-value.hurl) | Empty metadata value | Spec allows empty values but unclear | Accept empty base64-encoded values |
-| [OPT-META-004](optional/metadata/opt-meta-004-size-limits.hurl) | Metadata size limits | No maximum metadata size specified | Document limits; return 413 if exceeded |
-| [OPT-META-005](optional/metadata/opt-meta-005-non-ascii-keys.hurl) | Non-ASCII metadata keys | Spec says "ASCII" but no error specified | Return 400 Bad Request for non-ASCII keys |
-| [OPT-META-006](optional/metadata/opt-meta-006-retrieval.hurl) | Metadata retrieval | Spec doesn't require returning metadata on HEAD | Return `Upload-Metadata` on HEAD for debugging |
-
-### OPT-URL: URL Handling
-
-| ID | Test Name | Spec Gap | Suggested Best Practice |
-|----|-----------|----------|------------------------|
-| [OPT-URL-001](optional/url/opt-url-001-relative-location.hurl) | Relative Location header | Spec doesn't mandate absolute URLs | Always return absolute URLs for client compatibility |
-| [OPT-URL-002](optional/url/opt-url-002-url-format.hurl) | URL format and structure | "Left for implementation to decide" | Use opaque, non-guessable identifiers |
-| [OPT-URL-003](optional/url/opt-url-003-cross-origin.hurl) | Cross-origin Location | No CORS requirements specified | Support CORS headers if serving web clients |
-
-### OPT-PARTIAL: Partial Write Handling
-
-| ID | Test Name | Spec Gap | Suggested Best Practice |
-|----|-----------|----------|------------------------|
-| [OPT-PARTIAL-001](optional/partial/opt-partial-001-accepts-partial.hurl) | Server accepts partial PATCH | Spec says "store maximum" but behavior unclear | Accept partial data, update offset to bytes received |
-| [OPT-PARTIAL-002](optional/partial/opt-partial-002-response-code.hurl) | Partial write response code | Should partial acceptance be 204 or different? | Return 204 with accurate `Upload-Offset` |
-| [OPT-PARTIAL-003](optional/partial/opt-partial-003-client-notification.hurl) | Client notification of partial | How to signal incomplete write? | `Upload-Offset` in response reflects actual bytes stored |
-
-### OPT-CONCURRENT: Concurrency Handling
-
-| ID | Test Name | Spec Gap | Suggested Best Practice |
-|----|-----------|----------|------------------------|
-| [OPT-CONC-001](optional/concurrent/opt-conc-001-concurrent-patch.hurl) | Concurrent PATCH requests | No concurrency requirements specified | Serialize writes; second request gets 409 or waits |
-| [OPT-CONC-002](optional/concurrent/opt-conc-002-head-during-patch.hurl) | Concurrent HEAD during PATCH | Can HEAD be served during active write? | Return last committed offset |
-| [OPT-CONC-003](optional/concurrent/opt-conc-003-concurrent-creation.hurl) | Concurrent upload creation | Same file uploaded twice simultaneously | Each gets unique upload URL |
-
-### OPT-COMPLETE: Completion Handling
-
-| ID | Test Name | Spec Gap | Suggested Best Practice |
-|----|-----------|----------|------------------------|
-| [OPT-COMP-001](optional/complete/opt-comp-001-patch-completed.hurl) | PATCH on completed upload | Spec doesn't define behavior | Return 400 or 409; indicate upload is complete |
-| [OPT-COMP-002](optional/complete/opt-comp-002-head-completed.hurl) | HEAD on completed upload | Spec doesn't distinguish complete vs incomplete | Return `Upload-Offset` == `Upload-Length` |
-| [OPT-COMP-003](optional/complete/opt-comp-003-notification.hurl) | Upload completion notification | No callback/webhook mechanism | Optionally support `Upload-Complete` header or webhook |
-
-### OPT-ERROR: Error Response Bodies
-
-| ID | Test Name | Spec Gap | Suggested Best Practice |
-|----|-----------|----------|------------------------|
-| [OPT-ERR-001](optional/error/opt-err-001-response-format.hurl) | Error response format | No error body format specified | Return JSON: `{"error": "description", "code": "ERROR_CODE"}` |
-| [OPT-ERR-002](optional/error/opt-err-002-409-includes-offset.hurl) | 409 Conflict includes current offset | Spec doesn't require it | Include `Upload-Offset` header in 409 response |
-| [OPT-ERR-003](optional/error/opt-err-003-validation-errors.hurl) | Detailed validation errors | No structure for validation messages | Include specific field/header that failed validation |
-
-### OPT-TIMEOUT: Timeout Behavior
-
-| ID | Test Name | Spec Gap | Suggested Best Practice |
-|----|-----------|----------|------------------------|
-| [OPT-TIME-001](optional/timeout/opt-time-001-idle-timeout.hurl) | Idle connection timeout | No timeout requirements | Document timeouts; minimum 30 seconds recommended |
-| [OPT-TIME-002](optional/timeout/opt-time-002-slow-client.hurl) | Slow client handling | No minimum transfer rate specified | Allow configurable minimum rate or timeout |
-| [OPT-TIME-003](optional/timeout/opt-time-003-timeout-during-write.hurl) | Timeout during write | What happens to partial data? | Store received bytes; client can resume |
-
-### OPT-STORAGE: Storage Edge Cases
-
-| ID | Test Name | Spec Gap | Suggested Best Practice |
-|----|-----------|----------|------------------------|
-| [OPT-STORE-001](optional/storage/opt-store-001-storage-full.hurl) | Storage full during upload | No specific error code | Return 507 Insufficient Storage or 413 |
-| [OPT-STORE-002](optional/storage/opt-store-002-length-change.hurl) | Upload-Length change attempt | Only "immutable once set" mentioned | Return 400 with clear error message |
-| [OPT-STORE-003](optional/storage/opt-store-003-very-large.hurl) | Very large Upload-Length | No maximum file size requirement beyond Tus-Max-Size | Validate against Tus-Max-Size; return 413 |
-
-### OPT-CHECKSUM: Checksum Edge Cases
-
-| ID | Test Name | Spec Gap | Suggested Best Practice |
-|----|-----------|----------|------------------------|
-| [OPT-CSUM-001](optional/checksum/opt-csum-001-empty-chunk.hurl) | Checksum on empty chunk | Spec doesn't address empty body with checksum | Accept; validate checksum of empty data |
-| [OPT-CSUM-002](optional/checksum/opt-csum-002-multiple-checksums.hurl) | Multiple checksums | Can client send multiple algorithms? | Accept first valid; ignore others |
-| [OPT-CSUM-003](optional/checksum/opt-csum-003-creation-with-upload.hurl) | Checksum on creation-with-upload | Checksum for POST body? | Support `Upload-Checksum` on POST with body |
-
-### OPT-EXPIRE: Expiration Edge Cases
-
-| ID | Test Name | Spec Gap | Suggested Best Practice |
-|----|-----------|----------|------------------------|
-| [OPT-EXP-001](optional/expiration/opt-exp-001-extension-on-activity.hurl) | Expiration extension on active upload | Does activity extend expiration? | Extend expiration on each successful PATCH |
-| [OPT-EXP-002](optional/expiration/opt-exp-002-completed-expiration.hurl) | Completed upload expiration | Do completed uploads expire? | Different retention for complete vs incomplete |
-| [OPT-EXP-003](optional/expiration/opt-exp-003-precision.hurl) | Expiration precision | Minimum granularity not specified | Second-level precision minimum |
+| [OPT-EXP-001](extensions/expiration/opt-exp-001-extension-on-activity.hurl) | Expiration extension on active upload | Does activity extend expiration? | Extend expiration on each successful PATCH |
+| [OPT-EXP-002](extensions/expiration/opt-exp-002-completed-expiration.hurl) | Completed upload expiration | Do completed uploads expire? | Different retention for complete vs incomplete |
+| [OPT-EXP-003](extensions/expiration/opt-exp-003-precision.hurl) | Expiration precision | Minimum granularity not specified | Second-level precision minimum |
