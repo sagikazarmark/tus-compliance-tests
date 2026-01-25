@@ -12,7 +12,7 @@ HTTP 201
 [Captures]
 upload_url: header "Location"
 
-# Step 2: Try to send more bytes than allowed (11 bytes when only 5 allowed)
+# Step 2: Try to send more bytes than allowed (12 bytes when only 5 allowed)
 PATCH {{upload_url}}
 Tus-Resumable: {{tus_version}}
 Upload-Offset: 0

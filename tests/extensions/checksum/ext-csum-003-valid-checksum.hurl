@@ -13,12 +13,12 @@ HTTP 201
 upload_url: header "Location"
 
 # PATCH with correct SHA1 checksum
-# SHA1 of "Hello, tus!\n" = jiVMcGsdc+pakQJdI4OKm+zKT3s=
+# SHA1 of "Hello, tus!\n" = E7X121m3do5RTtnrOi5XTG9Uq0A=
 PATCH {{upload_url}}
 Tus-Resumable: {{tus_version}}
 Upload-Offset: 0
 Content-Type: application/offset+octet-stream
-Upload-Checksum: sha1 jiVMcGsdc+pakQJdI4OKm+zKT3s=
+Upload-Checksum: sha1 E7X121m3do5RTtnrOi5XTG9Uq0A=
 
 ```
 Hello, tus!

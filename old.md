@@ -279,7 +279,7 @@ Tests use deterministic test data for reproducibility:
 
 **Note:** Hurl's multiline body syntax adds a trailing newline, so actual byte counts are +1.
 
-- `Hello, tus!\n` (12 bytes) - SHA1: `jiVMcGsdc+pakQJdI4OKm+zKT3s=`
+- `Hello, tus!\n` (12 bytes) - SHA1: `E7X121m3do5RTtnrOi5XTG9Uq0A=`
 - `AAAAAAAAAA\n` (11 bytes of 'A' + newline) - for chunk testing
 
 ### Binary Content

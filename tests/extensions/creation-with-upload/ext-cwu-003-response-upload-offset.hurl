@@ -16,4 +16,4 @@ HTTP 201
 [Asserts]
 header "Upload-Offset" exists
 header "Upload-Offset" matches "^[0-9]+$"
-# Should indicate 11 bytes received (or less if partial acceptance)
+# Should indicate 12 bytes received (or less if partial acceptance)

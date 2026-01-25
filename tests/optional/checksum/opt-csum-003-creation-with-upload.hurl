@@ -3,12 +3,12 @@
 # Suggested Best Practice: Support Upload-Checksum on POST with body
 
 # POST with body and checksum (requires creation-with-upload extension)
-# "Hello, tus!" SHA1: jiVMcGsdc+pakQJdI4OKm+zKT3s=
+# "Hello, tus!\n" SHA1: E7X121m3do5RTtnrOi5XTG9Uq0A=
 POST {{base_url}}
 Tus-Resumable: {{tus_version}}
 Upload-Length: 12
 Content-Type: application/offset+octet-stream
-Upload-Checksum: sha1 jiVMcGsdc+pakQJdI4OKm+zKT3s=
+Upload-Checksum: sha1 E7X121m3do5RTtnrOi5XTG9Uq0A=
 
 ```
 Hello, tus!
