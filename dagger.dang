@@ -6,12 +6,6 @@ enum Server {
   TUS_NODE_SERVER
 }
 
-enum Scope {
-  ALL
-  CORE
-  EXT
-}
-
 enum Extension {
   CHECKSUM
   CHECKSUM_TRAILER
@@ -35,32 +29,20 @@ type TusCompliance {
   let tests: Directory! @defaultPath(path: "/tests/")
   let servers: Directory! @defaultPath(path: "/servers/")
 
-  """Run the test suite against the specified servers."""
+  """Run the test suite against the specified servers"""
   pub run(
     """Servers to run the test suite against."""
     server: [Server!]! = [Server.TUSD, Server.RUSTUS, Server.TUS_NODE_SERVER],
 
-    """Choose the format of the test results report."""
+    """Choose the format of the test results report"""
     report: [ReportFormat!]! = [],
   ): Directory! {
     let results = directory
 
-    let extensions = [
-      Extension.CHECKSUM,
-      Extension.CHECKSUM_TRAILER,
-      Extension.CONCATENATION,
-      Extension.CONCATENATION_UNFINISHED,
-      Extension.CREATION,
-      Extension.CREATION_DEFER_LENGTH,
-      Extension.CREATION_WITH_UPLOAD,
-      Extension.EXPIRATION,
-      Extension.TERMINATION,
-    ]
-
     for (s in server) {
       results = results.withDirectory(
         toString(s).trim("\"").toLower(),
-        test(mapService(s), extensions, false, report),
+        test(mapService(s), report: report),
       )
     }
 
@@ -69,7 +51,10 @@ type TusCompliance {
 
   """Run the test suite against a single server."""
   pub test(
+    """Service to run the test suite against"""
     service: Service!,
+
+    """Extensions to test."""
     extension: [Extension!]! = [
       Extension.CHECKSUM,
       Extension.CHECKSUM_TRAILER,
@@ -81,7 +66,11 @@ type TusCompliance {
       Extension.EXPIRATION,
       Extension.TERMINATION,
     ],
+
+    """Disable core tests"""
     disableCore: Boolean! = false,
+
+    """Format of the test results report"""
     report: [ReportFormat!]! = [],
   ): Directory! {
     let ctr = container
