@@ -12,14 +12,15 @@ HTTP 201
 [Captures]
 upload_url: header "Location"
 
-# Step 2: Request with unsupported version
-# Strict compliance: MUST return 412 with Tus-Version header
-# Note: tusd is lenient and accepts unknown versions (returns 200)
+# Step 2: Request with unsupported version - MUST return 412 with Tus-Version
+# Spec: "If the version specified by the Client is not supported by the Server,
+#        it MUST respond with the 412 Precondition Failed status and MUST include
+#        the Tus-Version header into the response."
 HEAD {{upload_url}}
 Tus-Resumable: 0.0.1
 
-HTTP *
+HTTP 412
 
 [Asserts]
-# Strict servers return 412, lenient servers (like tusd) return 200
-status < 500
+header "Tus-Version" exists
+header "Tus-Version" contains "1.0.0"

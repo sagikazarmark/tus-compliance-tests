@@ -156,7 +156,8 @@ dagger call run --scope=creation --server=TUSD
 | [EXT-CREATE-006](extensions/creation/ext-create-006-metadata-base64.hurl) | POST metadata value base64 | Atomic | Metadata values MUST be base64-encoded |
 | [EXT-CREATE-007](extensions/creation/ext-create-007-exceeds-max-size.hurl) | POST exceeds Tus-Max-Size | Atomic | `Upload-Length` > `Tus-Max-Size` MUST return 413 |
 | [EXT-CREATE-008](extensions/creation/ext-create-008-zero-length.hurl) | POST zero-length upload | Atomic | `Upload-Length: 0` MUST be accepted (empty file) |
-| [EXT-CREATE-009](extensions/creation/ext-create-009-location-absolute.hurl) | Location URL is absolute | Atomic | `Location` header MUST be an absolute URL or resolvable |
+| [EXT-CREATE-009](extensions/creation/ext-create-009-location-absolute.hurl) | Location URL is resolvable | Atomic | `Location` header MUST be a resolvable URL (absolute or relative) |
+| [EXT-CREATE-010](extensions/creation/ext-create-010-metadata-head.hurl) | HEAD echoes Upload-Metadata | Atomic | HEAD response MUST include stored `Upload-Metadata` |
 
 #### Scenario Tests
 
@@ -294,6 +295,8 @@ dagger call run --scope=creation --server=TUSD
 | [EXT-CONCAT-006](extensions/concatenation/ext-concat-006-head-concat-info.hurl) | HEAD on final returns concat info | Atomic | HEAD on final MUST include `Upload-Concat` header |
 | [EXT-CONCAT-007](extensions/concatenation/ext-concat-007-partials-complete.hurl) | Partial uploads must be complete | Atomic | Final creation with incomplete partials MUST fail (unless `concatenation-unfinished`) |
 | [EXT-CONCAT-008](extensions/concatenation/ext-concat-008-invalid-partial-url.hurl) | Invalid partial URL rejected | Atomic | Non-existent partial URL in final MUST be rejected |
+| [EXT-CONCAT-009](extensions/concatenation/ext-concat-009-partial-head-concat.hurl) | HEAD on partial returns Upload-Concat | Atomic | HEAD on a partial upload MUST include `Upload-Concat: partial` |
+| [EXT-CONCAT-010](extensions/concatenation/ext-concat-010-final-head-before-after.hurl) | HEAD on final after concatenation | Atomic | After concatenation, `Upload-Offset` and `Upload-Length` MUST be equal |
 
 #### Scenario Tests
 

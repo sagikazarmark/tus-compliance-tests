@@ -25,6 +25,4 @@ Tus-Resumable: {{tus_version}}
 HTTP *
 
 [Asserts]
-# Accept either 404 Not Found or 410 Gone
-status >= 404
-status <= 410
+status toString matches /^(404|410)$/

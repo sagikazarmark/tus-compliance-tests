@@ -17,8 +17,9 @@ upload_url: header "Location"
 HEAD {{upload_url}}
 Tus-Resumable: {{tus_version}}
 
-HTTP 200
+HTTP *
 
 [Asserts]
+status toString matches /^(200|204)$/
 header "Cache-Control" exists
 header "Cache-Control" contains "no-store"

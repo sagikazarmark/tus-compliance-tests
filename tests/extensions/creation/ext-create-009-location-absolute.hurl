@@ -1,6 +1,7 @@
-# EXT-CREATE-009: Location URL is absolute
-# Location header MUST be an absolute URL or resolvable
-# Spec: "The value MUST be a absolute URL"
+# EXT-CREATE-009: Location header is a resolvable URL
+# Location header MUST be a URL (absolute or relative) that the client can resolve.
+# Spec: "The Server MUST set the Location header to the URL of the created resource."
+# Relative URLs are valid per RFC 7231 §7.1.2; this test accepts either form.
 
 POST {{base_url}}
 Tus-Resumable: {{tus_version}}
@@ -10,5 +11,5 @@ HTTP 201
 
 [Asserts]
 header "Location" exists
-# Absolute URL must start with http:// or https://
-header "Location" matches "^https?://"
+# Location MUST be non-empty. Form (absolute or relative) is not mandated by the spec.
+header "Location" matches "^.+$"

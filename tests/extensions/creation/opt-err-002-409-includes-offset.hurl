@@ -35,5 +35,10 @@ wrong offset
 
 HTTP 409
 
-# Best practice: Include Upload-Offset header showing correct offset
-# This helps clients recover without additional HEAD request
+[Asserts]
+# Best practice: 409 response includes Upload-Offset showing the correct offset,
+# so clients can recover without an additional HEAD request.
+# We don't pin the exact offset: servers MAY partial-accept the earlier PATCH,
+# so the correct value is whatever the server actually committed.
+header "Upload-Offset" exists
+header "Upload-Offset" matches "^[0-9]+$"
