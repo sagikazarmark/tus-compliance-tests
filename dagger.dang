@@ -39,7 +39,7 @@ type TusCompliance {
   ): Directory! {
     let results = directory
 
-    for (s in server) {
+    server.each { s =>
       results = results.withDirectory(
         toString(s).trim("\"").toLower(),
         test(mapService(s), report: report),
@@ -92,12 +92,12 @@ type TusCompliance {
       args += ["--glob", "tests/core/**/*.hurl"]
     }
 
-    for (ext in extension) {
+    extension.each { ext =>
       let extName = toString(ext).trim("\"").toLower().replace("_", "-")
       args += ["--glob", "tests/extensions/" + extName + "/**/*.hurl"]
     }
 
-    for (r in report) {
+    report.each { r =>
       args += case (r) {
         ReportFormat.HTML => ["--report-html", "results/html/"]
         ReportFormat.JSON => ["--report-json", "results/json/"]
