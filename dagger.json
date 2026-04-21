@@ -1,8 +1,11 @@
 {
-    "name": "tus-compliance",
-    "engineVersion": "v0.19.10",
-    "sdk": {
-        "source": "github.com/vito/dang/dagger-sdk@eff4dc7e590b4ac823285c0e6c51332bc4385672"
-    },
-    "include": ["!.direnv", "!.devenv"]
+  "name": "tus-compliance",
+  "engineVersion": "v0.20.6",
+  "sdk": {
+    "source": "dang"
+  },
+  "include": [
+    "!.direnv",
+    "!.devenv"
+  ]
 }

@@ -1,8 +1,13 @@
 # CP-HEAD-005: HEAD on non-existent resource
-# MUST return 404 Not Found
-# Spec: "If the resource is not found, the Server SHOULD return 404 Not Found"
+# SHOULD return 404 Not Found, 410 Gone, or 403 Forbidden
+# Spec: "If the resource is not found, the Server SHOULD return either the
+#        404 Not Found, 410 Gone or 403 Forbidden status without the Upload-Offset header."
 
 HEAD {{base_url}}/non-existent-upload-id-12345
 Tus-Resumable: {{tus_version}}
 
-HTTP 404
+HTTP *
+
+[Asserts]
+status toString matches /^(403|404|410)$/
+header "Upload-Offset" not exists

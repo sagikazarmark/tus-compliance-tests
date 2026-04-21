@@ -1,6 +1,7 @@
 # EXT-CSUM-002: SHA1 algorithm support
-# Server SHOULD support SHA1 checksum algorithm
-# Spec: Recommended algorithms include sha1
+# Server MUST support SHA1 checksum algorithm
+# Spec: "The Server MUST support at least the SHA1 checksum algorithm
+#        identified by sha1 to allow for a minimum of compatibility."
 
 OPTIONS {{base_url}}
 
