@@ -32,7 +32,7 @@ type TusCompliance {
   """Run the test suite against the specified servers"""
   pub run(
     """Servers to run the test suite against."""
-    server: [Server!]! = [Server.TUSD, Server.RUSTUS, Server.TUS_NODE_SERVER],
+    server: [Server!]! = Server.values,
 
     """Choose the format of the test results report"""
     report: [ReportFormat!]! = [],
@@ -55,17 +55,7 @@ type TusCompliance {
     service: Service!,
 
     """Extensions to test."""
-    extension: [Extension!]! = [
-      Extension.CHECKSUM,
-      Extension.CHECKSUM_TRAILER,
-      Extension.CONCATENATION,
-      Extension.CONCATENATION_UNFINISHED,
-      Extension.CREATION,
-      Extension.CREATION_DEFER_LENGTH,
-      Extension.CREATION_WITH_UPLOAD,
-      Extension.EXPIRATION,
-      Extension.TERMINATION,
-    ],
+    extension: [Extension!]! = Extension.values,
 
     """Disable core tests"""
     disableCore: Boolean! = false,
