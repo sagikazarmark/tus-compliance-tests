@@ -33,15 +33,48 @@ The [test suite](tests/) includes:
 
 ## Quick Start
 
-2. **Run all tests**
-   ```bash
-   dagger call run
-   ```
+### Prerequisites
 
-3. **Export HTML report**
-   ```bash
-   dagger call run --report html export --path results
-   ```
+- Dagger for the recommended containerized runner.
+- Docker available to Dagger for server and runner containers.
+- For direct script usage: Python 3, Hurl v7.1.0, and a running tus server.
+
+### Hello World Runner
+
+```bash
+dagger call run --server=TUSD --report=JUNIT export --path results/tusd-hello
+```
+
+Expected duration: about 1 to 3 minutes for a local server image after Docker layers are cached. First runs may take longer while Dagger pulls or builds images.
+
+The exported result directory contains one subdirectory per server. For the hello-world command above, inspect `results/tusd-hello/tusd/` for selection reports named by server:
+
+- `all-<server>.txt`: every discovered `.hurl` and selected probe path before filtering.
+- `unsupported-<server>.txt`: extension paths removed because `Tus-Extension` did not advertise that extension.
+- `raw-active-<server>.txt`: tests remaining after unsupported filtering and before source-verified skips.
+- `skipped-<server>.txt`: exact paths skipped by `tests/skips/<server>.txt`.
+- `active-<server>.txt`: selected paths actually executed, unless `LIST_ONLY=true` is used.
+- `status-<server>.txt`: numeric runner exit status; `0` means all active Hurl files and probes passed or `LIST_ONLY=true` skipped execution.
+
+Raw means selected by path arguments. Unsupported means excluded because the server did not advertise the required tus extension. Skipped means source-verified server noncompliance documented in `docs/server-noncompliance.md`. Active means the runner executes the path.
+
+### Troubleshooting
+
+#### Capability Discovery Failure
+
+If OPTIONS fails or no `Tus-Extension` header is present, the runner treats the server as advertising no extensions. Extension tests are reported in `unsupported-*` instead of being run.
+
+#### Server Startup Failure
+
+If Dagger fails before reports are written, inspect the server image logs and confirm Docker can pull or build the selected server. The runner expects the tus service at `http://tus:8080/files` inside Dagger.
+
+#### Probe Failure
+
+Python probes run only when selected and active. Probe errors use the `Problem` / `Likely cause` / `Fix` / `Docs` shape and should be checked alongside `active-*` and `status-*`.
+
+#### Source-Verified Skip Policy
+
+Do not add a skip for a failing server until the implementation source or upstream issue proves server noncompliance. Every non-comment line in `tests/skips/<server>.txt` must have a matching entry in `docs/server-noncompliance.md`.
 
 ## References
 

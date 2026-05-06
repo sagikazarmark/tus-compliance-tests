@@ -11,3 +11,4 @@ devenv.local.yaml
 
 /results/
 variables.env
+.worktrees/

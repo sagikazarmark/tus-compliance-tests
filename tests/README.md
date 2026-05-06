@@ -56,24 +56,35 @@ Each extension directory contains all tests for that extension:
 
 ## Running Tests
 
-Use the `scope` parameter to run specific test suites:
+### Runner Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TUS_BASE_URL` | `http://tus:8080/files` | Base tus collection URL used for OPTIONS discovery and Hurl `base_url`. |
+| `TUS_SERVER_NAME` | none | Required safe server id for report filenames and `tests/skips/<server>.txt`; allowed characters are letters, numbers, `.`, `_`, and `-`. |
+| `RESULTS_DIR` | `results` | Directory where selection reports and Hurl reports are written. |
+| `REPORT_HTML` | unset | Set to `true` to write Hurl HTML reports under `$RESULTS_DIR/html`. |
+| `REPORT_JSON` | unset | Set to `true` to write Hurl JSON reports under `$RESULTS_DIR/json`. |
+| `REPORT_JUNIT` | unset | Set to `true` to write `$RESULTS_DIR/results-junit.xml`. |
+| `REPORT_TAP` | unset | Set to `true` to write `$RESULTS_DIR/report.tap`. |
+| `TUS_EXPIRATION_WAIT_SECONDS` | probe-defined | Wait duration for expiration probes or tests that need server expiration windows. |
+| `TUS_EXPIRATION_GRACE_SECONDS` | probe-defined | Additional grace duration for expiration timing variance. |
+| `LIST_ONLY` | unset | Set to `true` to write selection reports and exit without running Hurl files or Python probes. |
+
+Use `run` for the bundled server matrix or a selected bundled server:
 
 ```bash
-# Run all tests
+# Run all bundled servers
 dagger call run
 
-# Run only core protocol tests
-dagger call run --scope=core
-
-# Run only creation extension tests
-dagger call run --scope=creation
-
-# Run multiple scopes
-dagger call run --scope=core --scope=creation --scope=checksum
-
 # Run against a specific server
-dagger call run --scope=creation --server=TUSD
+dagger call run --server=TUSD
+
+# Export JUnit reports and runner selection files
+dagger call run --server=TUSD --report=JUNIT export --path results/tusd
 ```
+
+The lower-level `test` function accepts a Dagger `Service` plus optional `extension` and `disableCore` arguments for custom callers that need targeted suites.
 
 ### Compliance Levels
 

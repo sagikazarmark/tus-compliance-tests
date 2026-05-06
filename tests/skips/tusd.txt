@@ -1,0 +1,21 @@
+# Exact relative .hurl or probe paths skipped for this server after source verification.
+# Each skip must have a matching entry in docs/server-noncompliance.md.
+
+# docs/server-noncompliance.md#tusd-unsupported-post-412-omits-tus-version
+tests/core/cp-ver/cp-ver-004-unsupported-post-no-location.hurl
+
+# docs/server-noncompliance.md#tusd-unsupported-patch-412-omits-tus-version
+tests/core/cp-ver/cp-ver-005-unsupported-patch-no-mutation.hurl
+
+# docs/server-noncompliance.md#tusd-missing-head-tus-resumable-is-accepted
+tests/core/cp-head/cp-head-003-requires-tus-resumable.hurl
+
+# docs/server-noncompliance.md#tusd-unsupported-head-version-is-accepted
+tests/core/cp-ver/cp-ver-001-unsupported-version.hurl
+tests/core/cp-ver/cp-ver-002-412-includes-tus-version.hurl
+
+# docs/server-noncompliance.md#tusd-final-concat-upload-length-is-accepted
+tests/extensions/concatenation/ext-concat-003-final-no-length.hurl
+
+# docs/server-noncompliance.md#tusd-creation-with-upload-wrong-content-type-is-accepted
+tests/extensions/creation-with-upload/ext-cwu-002-post-content-type.hurl

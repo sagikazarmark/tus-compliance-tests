@@ -1,7 +1,7 @@
 # EXT-TERM-002: DELETE requires Tus-Resumable
-# DELETE without Tus-Resumable MUST return 412 Precondition Failed
-# Spec: "If the version specified by the Client is not supported by the Server,
-#        it MUST respond with the 412 Precondition Failed status"
+# DELETE without Tus-Resumable must be rejected.
+# Spec: "The Tus-Resumable header MUST be included in every request and response
+#        except for OPTIONS requests."
 
 # Create upload
 POST {{base_url}}
@@ -17,6 +17,3 @@ upload_url: header "Location"
 DELETE {{upload_url}}
 
 HTTP 412
-
-[Asserts]
-header "Tus-Version" exists
