@@ -879,7 +879,7 @@ git commit -m "test: cover checksum validation and trailer behavior"
 - Create: `tests/extensions/concatenation/ext-concat-011-final-head-exact-concat.hurl`
 - Create: `tests/extensions/concatenation/ext-concat-012-final-does-not-inherit-partial-metadata.hurl`
 
-- [ ] **Step 1: Assert Upload-Concat in partial creation response**
+- [x] **Step 1: Assert Upload-Concat in partial creation response**
 
 Add this assertion to `ext-concat-001-create-partial.hurl`:
 
@@ -887,7 +887,7 @@ Add this assertion to `ext-concat-001-create-partial.hurl`:
 header "Upload-Concat" == "partial"
 ```
 
-- [ ] **Step 2: Assert Upload-Concat in final creation response**
+- [x] **Step 2: Assert Upload-Concat in final creation response**
 
 In `ext-concat-002-create-final.hurl`, capture `final_url` and assert:
 
@@ -895,7 +895,7 @@ In `ext-concat-002-create-final.hurl`, capture `final_url` and assert:
 header "Upload-Concat" == "final;{{partial1_url}} {{partial2_url}}"
 ```
 
-- [ ] **Step 3: Add exact final HEAD echo test**
+- [x] **Step 3: Add exact final HEAD echo test**
 
 Create `ext-concat-011-final-head-exact-concat.hurl` with one completed partial, final creation `Upload-Concat: final;{{partial_url}}`, and final `HEAD` assertion:
 
@@ -903,7 +903,7 @@ Create `ext-concat-011-final-head-exact-concat.hurl` with one completed partial,
 header "Upload-Concat" == "final;{{partial_url}}"
 ```
 
-- [ ] **Step 4: Add final PATCH no-mutation checks**
+- [x] **Step 4: Add final PATCH no-mutation checks**
 
 Extend `ext-concat-005-patch-final-forbidden.hurl` after the `HTTP 403` response:
 
@@ -926,15 +926,15 @@ status toString matches /^(200|204)$/
 header "Upload-Offset" == "6"
 ````
 
-- [ ] **Step 5: Add final metadata non-transfer test**
+- [x] **Step 5: Add final metadata non-transfer test**
 
 Create `ext-concat-012-final-does-not-inherit-partial-metadata.hurl` with a partial upload containing `Upload-Metadata: filename cGFydGlhbC50eHQ=`, a final upload without metadata, and final `HEAD` assertion:
 
 ```hurl
-header "Upload-Metadata" notExists
+header "Upload-Metadata" not exists
 ```
 
-- [ ] **Step 6: Add PATCH after DELETE test**
+- [x] **Step 6: Add PATCH after DELETE test**
 
 Extend `ext-term-003-deleted-404-410.hurl` after the existing post-delete `HEAD` check:
 
@@ -953,7 +953,7 @@ HTTP *
 status toString matches /^(404|410)$/
 ````
 
-- [ ] **Step 7: Run Dagger verification**
+- [x] **Step 7: Run Dagger verification**
 
 ```bash
 dagger call run --server=TUSD --report=JUNIT export --path results/tusd-concat-term-strict
@@ -961,7 +961,7 @@ dagger call run --server=RUSTUS --report=JUNIT export --path results/rustus-conc
 dagger call run --server=TUS_NODE_SERVER --report=JUNIT export --path results/tus-node-concat-term-strict
 ```
 
-- [ ] **Step 8: Commit concatenation and termination coverage**
+- [x] **Step 8: Commit concatenation and termination coverage**
 
 ```bash
 git add tests/extensions/concatenation tests/extensions/termination/ext-term-003-deleted-404-410.hurl docs/server-noncompliance.md tests/skips

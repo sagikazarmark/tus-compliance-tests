@@ -56,5 +56,9 @@ Upload-Concat: final;{{partial1_url}} {{partial2_url}}
 
 HTTP 201
 
+[Captures]
+final_url: header "Location"
+
 [Asserts]
 header "Location" exists
+header "Upload-Concat" == "final;{{partial1_url}} {{partial2_url}}"

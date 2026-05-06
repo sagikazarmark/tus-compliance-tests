@@ -17,5 +17,9 @@ tests/core/cp-ver/cp-ver-002-412-includes-tus-version.hurl
 # docs/server-noncompliance.md#tusd-final-concat-upload-length-is-accepted
 tests/extensions/concatenation/ext-concat-003-final-no-length.hurl
 
+# docs/server-noncompliance.md#tusd-concat-creation-responses-omit-upload-concat
+tests/extensions/concatenation/ext-concat-001-create-partial.hurl
+tests/extensions/concatenation/ext-concat-002-create-final.hurl
+
 # docs/server-noncompliance.md#tusd-creation-with-upload-wrong-content-type-is-accepted
 tests/extensions/creation-with-upload/ext-cwu-002-post-content-type.hurl

@@ -26,3 +26,18 @@ HTTP *
 
 [Asserts]
 status toString matches /^(404|410)$/
+
+# Subsequent PATCH should return 404 or 410
+PATCH {{upload_url}}
+Tus-Resumable: {{tus_version}}
+Upload-Offset: 0
+Content-Type: application/offset+octet-stream
+
+```
+data
+```
+
+HTTP *
+
+[Asserts]
+status toString matches /^(404|410)$/

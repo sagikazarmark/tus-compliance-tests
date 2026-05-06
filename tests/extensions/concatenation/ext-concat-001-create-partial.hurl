@@ -11,3 +11,4 @@ HTTP 201
 
 [Asserts]
 header "Location" exists
+header "Upload-Concat" == "partial"

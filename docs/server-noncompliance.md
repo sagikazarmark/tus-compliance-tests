@@ -69,6 +69,17 @@ Suggested fix: TUSD should reject final concatenation creation requests that inc
 Docs: `tests/extensions/concatenation/ext-concat-003-final-no-length.hurl`
 Decision: skipped for `tusd` in `tests/skips/tusd.txt` until upstream behavior changes.
 
+## tusd: concat creation responses omit Upload-Concat
+
+Tests: `tests/extensions/concatenation/ext-concat-001-create-partial.hurl`, `tests/extensions/concatenation/ext-concat-002-create-final.hurl`
+Observed: `dagger call run --server=TUSD --report=JUNIT export --path results/tusd-task6-concat-term-final` failed because partial and final concatenation `POST` responses returned `201 Created` without the required `Upload-Concat` response header.
+Spec: The concatenation extension requires creation responses for partial and final uploads to expose the corresponding `Upload-Concat` value.
+Source evidence: `/tmp/opencode/tus-source-audit/tusd/pkg/handler/unrouted_handler.go:361`-`410` initializes the `POST` response headers and adds only `Location`; `unrouted_handler.go:420`-`433` performs final concatenation without adding `Upload-Concat`; `unrouted_handler.go:675`-`690` adds `Upload-Concat` only for `HEAD` responses.
+Source revision: `1215a10c30218b42ace3eed6db952928472d9545` from `tusproject/tusd:latest` (`tusd -version` reports v2.9.2).
+Suggested fix: TUSD should add `Upload-Concat: partial` to partial creation responses and `Upload-Concat: final;<urls>` to final creation responses.
+Docs: `tests/extensions/concatenation/ext-concat-001-create-partial.hurl`, `tests/extensions/concatenation/ext-concat-002-create-final.hurl`
+Decision: skipped for `tusd` in `tests/skips/tusd.txt` until upstream behavior changes.
+
 ## tusd: creation-with-upload wrong Content-Type is accepted
 
 Test: `tests/extensions/creation-with-upload/ext-cwu-002-post-content-type.hurl`

@@ -45,3 +45,23 @@ data
 ```
 
 HTTP 403
+
+# Final and partial offsets should remain unchanged after the forbidden PATCH.
+HEAD {{final_url}}
+Tus-Resumable: {{tus_version}}
+
+HTTP *
+
+[Asserts]
+status toString matches /^(200|204)$/
+header "Upload-Offset" == "6"
+header "Upload-Length" == "6"
+
+HEAD {{partial_url}}
+Tus-Resumable: {{tus_version}}
+
+HTTP *
+
+[Asserts]
+status toString matches /^(200|204)$/
+header "Upload-Offset" == "6"
