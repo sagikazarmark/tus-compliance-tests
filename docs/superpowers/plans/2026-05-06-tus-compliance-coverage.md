@@ -976,13 +976,13 @@ git commit -m "test: cover concatenation headers and termination follow-up reque
 - Create: `tests/probes/expiration_lifecycle.py`
 - Modify: `dagger.dang` server configuration if a bundled server supports short expiration configuration.
 
-- [ ] **Step 1: Correct the expiration Hurl comments and assertions**
+- [x] **Step 1: Correct the expiration Hurl comments and assertions**
 
 Keep `ext-expire-001-post-response.hurl` as a creation smoke test and update its comments to say strict creation-time `Upload-Expires` validation lives in `tests/probes/expiration_lifecycle.py` when the server exposes a known expiration at creation.
 
 For `ext-expire-002-patch-response.hurl`, assert `header "Upload-Expires" exists` and RFC 9110 date format after `PATCH` for servers that advertise `expiration` and are configured to expire unfinished uploads.
 
-- [ ] **Step 2: Add expiration lifecycle probe**
+- [x] **Step 2: Add expiration lifecycle probe**
 
 Create `tests/probes/expiration_lifecycle.py`:
 
@@ -1048,11 +1048,11 @@ raise SystemExit(f"expired upload returned {last_status}, expected 404 or 410 be
 
 Implementation note: use polling with a small grace period instead of a single `sleep` plus one `HEAD`, because expiration checks can be delayed under CI load.
 
-- [ ] **Step 3: Configure existing servers for expiration where possible**
+- [x] **Step 3: Configure existing servers for expiration where possible**
 
 Inspect source/docs for tusd, rustus, and tus-node-server to find whether a short unfinished-upload expiration can be configured. If a server can be configured, modify `mapService` for that server to set a short expiration only when running expiration tests. If a server advertises expiration but cannot satisfy the probe, verify the source and add a skip.
 
-- [ ] **Step 4: Run expiration verification**
+- [x] **Step 4: Run expiration verification**
 
 ```bash
 dagger call run --server=TUSD --report=JUNIT export --path results/tusd-expiration-strict
@@ -1060,7 +1060,14 @@ dagger call run --server=RUSTUS --report=JUNIT export --path results/rustus-expi
 dagger call run --server=TUS_NODE_SERVER --report=JUNIT export --path results/tus-node-expiration-strict
 ```
 
-- [ ] **Step 5: Commit expiration coverage**
+Verified after Task 7 review fixes:
+
+- `results/tusd-expiration-strict/tusd/status-tusd.txt`: `0`; JUnit grep found no failures or errors; expiration files and `tests/probes/expiration_lifecycle.py` were listed as unsupported.
+- `results/rustus-expiration-strict/rustus/status-rustus.txt`: `0`; JUnit grep found no failures or errors; expiration files and `tests/probes/expiration_lifecycle.py` were listed as unsupported.
+- `results/tus-node-expiration-strict/tus-node-server/status-tus-node-server.txt`: `0`; JUnit grep found no failures or errors; expiration files and `tests/probes/expiration_lifecycle.py` were active.
+- `dagger call run --server=TUS_NODE_SERVER --extension=CREATION --disable-core=true --report=JUNIT export --path results/tus-node-creation-no-expiration` returned status `0` without enabling `TUS_EXPIRATION_PERIOD_MS`.
+
+- [x] **Step 5: Commit expiration coverage**
 
 ```bash
 git add tests/extensions/expiration tests/probes/expiration_lifecycle.py dagger.dang docs/server-noncompliance.md tests/skips

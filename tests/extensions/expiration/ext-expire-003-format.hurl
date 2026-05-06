@@ -12,11 +12,17 @@ HTTP 201
 [Captures]
 upload_url: header "Location"
 
-# HEAD to get Upload-Expires if available
-HEAD {{upload_url}}
+# PATCH response for an unfinished expiring upload MUST include Upload-Expires.
+PATCH {{upload_url}}
 Tus-Resumable: {{tus_version}}
+Upload-Offset: 0
+Content-Type: application/offset+octet-stream
 
-HTTP 200
+```
+partial data
+```
+
+HTTP 204
 
 [Asserts]
 # RFC 9110 format: Day, DD Mon YYYY HH:MM:SS GMT

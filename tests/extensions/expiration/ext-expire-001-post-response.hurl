@@ -1,6 +1,7 @@
-# EXT-EXPIRE-001: Upload-Expires in POST response
-# Creation response SHOULD include Upload-Expires header
+# EXT-EXPIRE-001: expiration creation smoke test
 # Spec: "The Server MAY add the Upload-Expires header to indicate when the upload expires"
+# Strict creation-time Upload-Expires validation lives in tests/probes/expiration_lifecycle.py
+# when the server exposes a known expiration at creation time.
 
 POST {{base_url}}
 Tus-Resumable: {{tus_version}}

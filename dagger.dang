@@ -36,6 +36,12 @@ type TusCompliance {
 
     """Choose the format of the test results report"""
     report: [ReportFormat!]! = [],
+
+    """Extensions to test."""
+    extension: [Extension!]! = Extension.values,
+
+    """Disable core tests"""
+    disableCore: Boolean! = false,
   ): Directory! {
     let results = directory
 
@@ -43,7 +49,13 @@ type TusCompliance {
       let serverName = serverSlug(s)
       results = results.withDirectory(
         serverName,
-        test(mapService(s), serverName: serverName, report: report),
+        test(
+          mapService(s, expiration: extension.contains(Extension.EXPIRATION)),
+          serverName: serverName,
+          extension: extension,
+          disableCore: disableCore,
+          report: report,
+        ),
       )
     }
 
@@ -74,6 +86,10 @@ type TusCompliance {
       .withEnvVariable("TUS_SERVER_NAME", serverName)
       .withEnvVariable("RESULTS_DIR", "results")
       .withEnvVariable("TUS_BASE_URL", "http://tus:8080/files")
+
+    if (serverName == "tus-node-server" and extension.contains(Extension.EXPIRATION)) {
+      ctr = ctr.withEnvVariable("TUS_EXPIRATION_WAIT_SECONDS", "1")
+    }
 
     let args = [
       "sh",
@@ -125,7 +141,7 @@ type TusCompliance {
     toString(extension).trim("\"").toLower().replace("_", "-")
   }
 
-  let mapService(server: Server!): Service! {
+  let mapService(server: Server!, expiration: Boolean!): Service! {
     case (server) {
       Server.TUSD => container
         .from("tusproject/tusd:latest")
@@ -140,15 +156,21 @@ type TusCompliance {
         .withEnvVariable("RUSTUS_STORAGE", "file-storage")
         .withEnvVariable("RUSTUS_DATA_DIR", "/data")
         .withEnvVariable("RUSTUS_DIR_STRUCTURE", "flat")
+        .withEnvVariable("RUSTUS_ALLOW_EMPTY", "true")
         .withEnvVariable("RUSTUS_EXTENSIONS", "getting,creation,termination,creation-with-upload,creation-defer-length,concatenation,checksum")
         .withEnvVariable("RUSTUS_INFO_STORAGE", "file-info-storage")
         .withEnvVariable("RUSTUS_INFO_DIR", "/data/info")
         .withMountedCache("/data", cacheVolume("rustus"))
         .withExposedPort(8080)
         .asService
-      Server.TUS_NODE_SERVER => servers.dockerBuild(dockerfile: "Dockerfile.tus-node-server")
-        .withExposedPort(8080)
-        .asService
+      Server.TUS_NODE_SERVER => {
+        let svc = servers.dockerBuild(dockerfile: "Dockerfile.tus-node-server")
+          .withExposedPort(8080)
+        if (expiration) {
+          svc = svc.withEnvVariable("TUS_EXPIRATION_PERIOD_MS", "1000")
+        }
+        svc.asService
+      }
     }
   }
 }

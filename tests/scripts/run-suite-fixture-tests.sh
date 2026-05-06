@@ -79,13 +79,35 @@ case " $* " in
   *)
     printf 'HTTP/1.1 204 No Content\n'
     if [ "${FAKE_TUS_EXTENSIONS+x}" = x ]; then
-      printf 'Tus-Extension: %s\n' "$FAKE_TUS_EXTENSIONS"
+      printf '%s: %s\n' "${FAKE_TUS_EXTENSION_HEADER:-Tus-Extension}" "$FAKE_TUS_EXTENSIONS"
     fi
     exit 0
     ;;
 esac
 SH
   chmod +x "$root/bin/hurl"
+
+  cat > "$root/bin/awk" <<'SH'
+#!/bin/sh
+set -eu
+if [ "${FAKE_AWK_NO_IGNORECASE:-}" = "1" ]; then
+  case "$1" in
+    *IGNORECASE*Tus-Extension*)
+      while IFS= read -r line; do
+        case "$line" in
+          *Tus-Extension:*)
+            line=${line#*Tus-Extension:}
+            printf '%s\n' "$line"
+            ;;
+        esac
+      done
+      exit 0
+      ;;
+  esac
+fi
+exec /usr/bin/awk "$@"
+SH
+  chmod +x "$root/bin/awk"
 }
 
 run_fixture() {
@@ -110,6 +132,15 @@ test_creation_only_advertisement_filters_other_extensions() {
   assert_file_contains "$root/results/active-tusd.txt" "tests/extensions/creation/create.hurl"
   assert_file_contains "$root/results/unsupported-tusd.txt" "tests/extensions/checksum/checksum.hurl"
   assert_file_contains "$root/results/unsupported-tusd.txt" "tests/extensions/termination/terminate.hurl"
+  assert_file_contains "$root/results/status-tusd.txt" "0"
+}
+
+test_lowercase_tus_extension_header_is_discovered() {
+  root=$(mktemp -d)
+  make_fixture "$root"
+  (cd "$root" && PATH="$root/bin:$PATH" RESULTS_DIR=results LIST_ONLY=true TUS_SERVER_NAME=tusd FAKE_AWK_NO_IGNORECASE=1 FAKE_TUS_EXTENSION_HEADER=tus-extension FAKE_TUS_EXTENSIONS=creation sh "$RUNNER" tests/extensions/creation tests/extensions/checksum)
+  assert_file_contains "$root/results/active-tusd.txt" "tests/extensions/creation/create.hurl"
+  assert_file_contains "$root/results/unsupported-tusd.txt" "tests/extensions/checksum/checksum.hurl"
   assert_file_contains "$root/results/status-tusd.txt" "0"
 }
 
@@ -256,6 +287,7 @@ test_invalid_server_name_is_rejected() {
 
 test_failed_options_marks_extensions_unsupported
 test_creation_only_advertisement_filters_other_extensions
+test_lowercase_tus_extension_header_is_discovered
 test_skips_apply_after_unsupported_with_exact_matching
 test_missing_skip_file_is_empty_report
 test_probe_paths_are_selectable_and_skippable

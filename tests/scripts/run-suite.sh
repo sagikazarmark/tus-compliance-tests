@@ -92,12 +92,14 @@ EOF
   if ! hurl --very-verbose --variable "base_url=$TUS_BASE_URL" "$options_file" > "$options_out" 2>&1; then
     return 0
   fi
-  awk 'BEGIN { IGNORECASE=1 }
-    /^[<[:space:]]*Tus-Extension:/ {
-      sub(/^[<[:space:]]*Tus-Extension:[[:space:]]*/, "")
-      gsub(/\r/, "")
-      print
-    }' "$options_out" | tr ',' '\n' | awk '{ gsub(/^[[:space:]]+|[[:space:]]+$/, ""); if ($0 != "") print tolower($0) }'
+  awk '{
+    line = $0
+    if (tolower(line) ~ /^[<[:space:]]*tus-extension:/) {
+      sub(/^[<[:space:]]*[^:]*:[[:space:]]*/, "", line)
+      gsub(/\r/, "", line)
+      print line
+    }
+  }' "$options_out" | tr ',' '\n' | awk '{ gsub(/^[[:space:]]+|[[:space:]]+$/, ""); if ($0 != "") print tolower($0) }'
 }
 
 discover_extensions > "$tmp_dir/extensions"

@@ -3,6 +3,10 @@
 
 # docs/server-noncompliance.md#tus-node-server-post-method-override-is-not-applied
 tests/core/cp-override/cp-override-001-post-overrides-patch.hurl
+tests/extensions/termination/ext-term-006-post-overrides-delete.hurl
+
+# docs/server-noncompliance.md#tus-node-server-creation-with-upload-wrong-content-type-is-accepted
+tests/extensions/creation-with-upload/ext-cwu-002-post-content-type.hurl
 
 # docs/server-noncompliance.md#tus-node-server-unsupported-head-version-returns-400-instead-of-412
 tests/core/cp-ver/cp-ver-001-unsupported-version.hurl
