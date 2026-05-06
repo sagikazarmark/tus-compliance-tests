@@ -1,6 +1,6 @@
 # EXT-EXPIRE-002: Upload-Expires in PATCH response
-# PATCH response SHOULD include Upload-Expires header
-# Spec: "The Server MAY add the Upload-Expires header to indicate when the upload expires"
+# Servers MUST return Upload-Expires on PATCH only if this upload is going to expire.
+# Strict configured-expiration validation lives in tests/probes/expiration_lifecycle.py.
 
 # Create upload
 POST {{base_url}}
@@ -23,6 +23,3 @@ test data
 ```
 
 HTTP 204
-
-# Upload-Expires may be present in response
-# If present, should be a valid datetime

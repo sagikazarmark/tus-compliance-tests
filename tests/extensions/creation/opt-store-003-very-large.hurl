@@ -5,7 +5,10 @@
 # First check server's max size (if any)
 OPTIONS {{base_url}}
 
-HTTP 200
+HTTP *
+
+[Asserts]
+status toString matches /^(200|204)$/
 
 # Attempt to create very large upload (may be rejected if exceeds Tus-Max-Size)
 # Using 1 petabyte as test value
@@ -17,5 +20,4 @@ HTTP *
 
 [Asserts]
 # Accept either 201 (no limit) or 413 (exceeds limit)
-status >= 200
-status <= 500
+status toString matches /^(201|413)$/

@@ -4,7 +4,8 @@
 
 OPTIONS {{base_url}}
 
-HTTP 200
+HTTP *
 
 [Asserts]
+status toString matches /^(200|204)$/
 header "Tus-Version" exists

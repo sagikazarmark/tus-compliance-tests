@@ -1,7 +1,7 @@
 # CP-HEAD-003: HEAD requires Tus-Resumable
-# Request without Tus-Resumable MUST return 412 Precondition Failed
-# Spec: "If the version specified by the Client is not supported by the Server,
-#        it MUST respond with the 412 Precondition Failed status"
+# Request without Tus-Resumable must be rejected; exact status is not specified.
+# Spec: "The Tus-Resumable header MUST be included in every request and response
+#        except for OPTIONS requests."
 
 # Step 1: Create an upload first
 POST {{base_url}}
@@ -13,13 +13,10 @@ HTTP 201
 [Captures]
 upload_url: header "Location"
 
-# Step 2: HEAD without Tus-Resumable header - MUST return 412
-# Spec: "If the version specified by the Client is not supported by the Server,
-#        it MUST respond with the 412 Precondition Failed status"
-# Missing Tus-Resumable header means no version specified, which is not supported.
+# Step 2: HEAD without Tus-Resumable header must be rejected.
 HEAD {{upload_url}}
 
-HTTP 412
+HTTP *
 
 [Asserts]
-header "Tus-Version" exists
+status toString matches /^(400|412)$/

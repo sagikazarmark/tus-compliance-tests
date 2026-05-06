@@ -5,9 +5,10 @@
 
 OPTIONS {{base_url}}
 
-HTTP 200
+HTTP *
 
 [Asserts]
+status toString matches /^(200|204)$/
 header "Tus-Version" exists
 # Version format check - should contain at least 1.0.0 and be comma-separated if multiple
 header "Tus-Version" matches "^[0-9]+\\.[0-9]+\\.[0-9]+(,[0-9]+\\.[0-9]+\\.[0-9]+)*$"

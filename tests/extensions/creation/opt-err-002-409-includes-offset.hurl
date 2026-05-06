@@ -1,4 +1,4 @@
-# OPT-ERR-002: 409 Conflict includes current offset
+# OPT-ERR-002: 409 Conflict rejects offset mismatch
 # Spec: Doesn't require it
 # Suggested Best Practice: Include Upload-Offset header in 409 response
 
@@ -34,11 +34,3 @@ wrong offset
 ```
 
 HTTP 409
-
-[Asserts]
-# Best practice: 409 response includes Upload-Offset showing the correct offset,
-# so clients can recover without an additional HEAD request.
-# We don't pin the exact offset: servers MAY partial-accept the earlier PATCH,
-# so the correct value is whatever the server actually committed.
-header "Upload-Offset" exists
-header "Upload-Offset" matches "^[0-9]+$"

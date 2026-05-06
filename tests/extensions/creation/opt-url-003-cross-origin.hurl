@@ -4,7 +4,10 @@
 
 OPTIONS {{base_url}}
 
-HTTP 200
+HTTP *
+
+[Asserts]
+status toString matches /^(200|204)$/
 
 # CORS headers are optional but recommended for web client support
 # If present, should include:

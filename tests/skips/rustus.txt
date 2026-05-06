@@ -1,0 +1,57 @@
+# Exact relative .hurl or probe paths skipped for this server after source verification.
+# Each skip must have a matching entry in docs/server-noncompliance.md.
+
+# docs/server-noncompliance.md#rustus-unsupported-post-version-is-accepted
+tests/core/cp-ver/cp-ver-004-unsupported-post-no-location.hurl
+
+# docs/server-noncompliance.md#rustus-unsupported-patch-version-mutates-upload
+tests/core/cp-ver/cp-ver-005-unsupported-patch-no-mutation.hurl
+
+# docs/server-noncompliance.md#rustus-missing-post-tus-resumable-is-accepted
+tests/core/cp-err/cp-err-001-response-format.hurl
+tests/extensions/creation/ext-create-003-requires-tus-resumable.hurl
+
+# docs/server-noncompliance.md#rustus-upload-metadata-head-reorders-pairs
+tests/extensions/creation/ext-create-013-metadata-exact-head.hurl
+
+# docs/server-noncompliance.md#rustus-missing-head-tus-resumable-is-accepted
+tests/core/cp-head/cp-head-003-requires-tus-resumable.hurl
+
+# docs/server-noncompliance.md#rustus-head-cache-control-uses-no-cache
+tests/core/cp-head/cp-head-004-cache-control.hurl
+
+# docs/server-noncompliance.md#rustus-missing-patch-tus-resumable-mutates-upload
+tests/core/cp-patch/cp-patch-001-requires-tus-resumable.hurl
+
+# docs/server-noncompliance.md#rustus-unsupported-head-version-is-accepted
+tests/core/cp-ver/cp-ver-001-unsupported-version.hurl
+tests/core/cp-ver/cp-ver-002-412-includes-tus-version.hurl
+
+# docs/server-noncompliance.md#rustus-patch-beyond-upload-length-is-accepted
+tests/core/cp-patch/cp-patch-010-beyond-upload-length.hurl
+
+# docs/server-noncompliance.md#rustus-checksum-mismatch-returns-417-instead-of-460
+tests/extensions/checksum/ext-csum-004-mismatch-460.hurl
+tests/extensions/checksum/ext-csum-005-no-offset-update.hurl
+tests/extensions/checksum/ext-csum-008-retry-after-failure.hurl
+tests/extensions/checksum/ext-csum-009-error-returns-tus-resumable.hurl
+tests/extensions/checksum/scn-error-002-checksum-failure.hurl
+
+# docs/server-noncompliance.md#rustus-concat-creation-responses-omit-upload-concat
+tests/extensions/concatenation/ext-concat-001-create-partial.hurl
+tests/extensions/concatenation/ext-concat-002-create-final.hurl
+
+# docs/server-noncompliance.md#rustus-final-concat-upload-length-is-accepted
+tests/extensions/concatenation/ext-concat-003-final-no-length.hurl
+
+# docs/server-noncompliance.md#rustus-final-head-reconstructs-upload-concat
+tests/extensions/concatenation/ext-concat-011-final-head-exact-concat.hurl
+
+# docs/server-noncompliance.md#rustus-deferred-length-mutual-exclusion-is-accepted
+tests/extensions/creation-defer-length/ext-defer-005-mutual-exclusion.hurl
+
+# docs/server-noncompliance.md#rustus-creation-with-upload-wrong-content-type-is-accepted
+tests/extensions/creation-with-upload/ext-cwu-002-post-content-type.hurl
+
+# docs/server-noncompliance.md#rustus-missing-delete-tus-resumable-deletes-upload
+tests/extensions/termination/ext-term-002-requires-tus-resumable.hurl

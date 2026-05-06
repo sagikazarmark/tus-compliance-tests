@@ -19,10 +19,20 @@ const { FileStore } = require('@tus/file-store');
 
 const host = '0.0.0.0';
 const port = 8080;
+const fileStoreOptions = { directory: '/srv/uploads' };
+const expirationPeriod = process.env.TUS_EXPIRATION_PERIOD_MS;
+
+if (expirationPeriod !== undefined) {
+  const expirationPeriodInMilliseconds = Number(expirationPeriod);
+  if (!Number.isFinite(expirationPeriodInMilliseconds) || expirationPeriodInMilliseconds <= 0) {
+    throw new Error('TUS_EXPIRATION_PERIOD_MS must be a positive number');
+  }
+  fileStoreOptions.expirationPeriodInMilliseconds = expirationPeriodInMilliseconds;
+}
 
 const server = new Server({
   path: '/files',
-  datastore: new FileStore({ directory: '/srv/uploads' }),
+  datastore: new FileStore(fileStoreOptions),
   maxSize: 1073741824, // 1GB max upload size
 });
 

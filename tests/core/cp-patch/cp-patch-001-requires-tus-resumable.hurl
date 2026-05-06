@@ -1,7 +1,7 @@
 # CP-PATCH-001: PATCH requires Tus-Resumable
-# Request without Tus-Resumable MUST return 412 Precondition Failed
-# Spec: "If the version specified by the Client is not supported by the Server,
-#        it MUST respond with the 412 Precondition Failed status"
+# Request without Tus-Resumable must be rejected without mutating upload state; exact status is not specified.
+# Spec: "The Tus-Resumable header MUST be included in every request and response
+#        except for OPTIONS requests."
 
 # Step 1: Create an upload first
 POST {{base_url}}
@@ -13,12 +13,9 @@ HTTP 201
 [Captures]
 upload_url: header "Location"
 
-# Step 2: PATCH without Tus-Resumable header - MUST return 412
+# Step 2: PATCH without Tus-Resumable header must be rejected.
 # Spec: "The Tus-Resumable header MUST be included in every request and response
 #        except for OPTIONS requests."
-# Spec: "If the version specified by the Client is not supported by the Server,
-#        it MUST respond with the 412 Precondition Failed status and MUST include
-#        the Tus-Version header into the response."
 PATCH {{upload_url}}
 Upload-Offset: 0
 Content-Type: application/offset+octet-stream
@@ -27,7 +24,16 @@ Content-Type: application/offset+octet-stream
 test data
 ```
 
-HTTP 412
+HTTP *
 
 [Asserts]
-header "Tus-Version" exists
+status toString matches /^(400|412)$/
+
+HEAD {{upload_url}}
+Tus-Resumable: {{tus_version}}
+
+HTTP *
+
+[Asserts]
+status toString matches /^(200|204)$/
+header "Upload-Offset" == "0"

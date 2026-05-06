@@ -1,0 +1,15 @@
+FROM python:3.13-slim
+
+ARG HURL_VERSION=7.1.0
+ARG HURL_DEB_URL=https://github.com/Orange-OpenSource/hurl/releases/download/7.1.0/hurl_7.1.0_amd64.deb
+ARG HURL_DEB_SHA256=c5770e7b1743da7541a2c1ae8918fdf19cc8361e3995b0b3e58a9b946b1cb6dc
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl \
+  && curl -fsSL "$HURL_DEB_URL" -o /tmp/hurl.deb \
+  && printf '%s  /tmp/hurl.deb\n' "$HURL_DEB_SHA256" | sha256sum -c - \
+  && apt-get install -y --no-install-recommends /tmp/hurl.deb \
+  && hurl --version | grep -F "hurl $HURL_VERSION" \
+  && rm -f /tmp/hurl.deb \
+  && apt-get purge -y --auto-remove curl \
+  && rm -rf /var/lib/apt/lists/*

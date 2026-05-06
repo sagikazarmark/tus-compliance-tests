@@ -1,0 +1,19 @@
+# Exact relative .hurl or probe paths skipped for this server after source verification.
+# Each skip must have a matching entry in docs/server-noncompliance.md.
+
+# docs/server-noncompliance.md#tus-node-server-post-method-override-is-not-applied
+tests/core/cp-override/cp-override-001-post-overrides-patch.hurl
+tests/extensions/termination/ext-term-006-post-overrides-delete.hurl
+
+# docs/server-noncompliance.md#tus-node-server-creation-with-upload-wrong-content-type-is-accepted
+tests/extensions/creation-with-upload/ext-cwu-002-post-content-type.hurl
+
+# docs/server-noncompliance.md#tus-node-server-unsupported-head-version-returns-400-instead-of-412
+tests/core/cp-ver/cp-ver-001-unsupported-version.hurl
+tests/core/cp-ver/cp-ver-002-412-includes-tus-version.hurl
+
+# docs/server-noncompliance.md#tus-node-server-unsupported-post-version-returns-400-instead-of-412
+tests/core/cp-ver/cp-ver-004-unsupported-post-no-location.hurl
+
+# docs/server-noncompliance.md#tus-node-server-unsupported-patch-version-returns-400-instead-of-412
+tests/core/cp-ver/cp-ver-005-unsupported-patch-no-mutation.hurl

@@ -1,5 +1,5 @@
 # EXT-EXPIRE-004: Expired upload returns 404/410
-# Access after expiration MUST return 404 or 410
+# Access after expiration SHOULD return 404 or 410
 # Spec: "If an upload is going to expire and this is announced by the Server,
 #        the Client MUST try to finish the upload before the expiration time"
 # Note: This test requires server-specific configuration or waiting for expiration
