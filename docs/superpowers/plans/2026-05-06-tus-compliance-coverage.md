@@ -763,17 +763,17 @@ git commit -m "test: cover creation header validation and metadata rules"
 - Create: `tests/extensions/checksum/ext-csum-012-unknown-algorithm-no-offset-update.hurl`
 - Create: `tests/probes/checksum_trailer.py`
 
-- [ ] **Step 1: Add malformed checksum format tests**
+- [x] **Step 1: Add malformed checksum format tests**
 
 Create `ext-csum-010-malformed-missing-space.hurl` with `Upload-Checksum: sha1E7X121m3do5RTtnrOi5XTG9Uq0A=` and expect `HTTP 400`.
 
 Create `ext-csum-011-malformed-base64.hurl` with `Upload-Checksum: sha1 not_base64!!!` and expect `HTTP 400`.
 
-- [ ] **Step 2: Add unsupported algorithm no-offset test**
+- [x] **Step 2: Add unsupported algorithm no-offset test**
 
 Create `ext-csum-012-unknown-algorithm-no-offset-update.hurl` by copying the flow from `ext-csum-006-unknown-algorithm.hurl`, then add a `HEAD` request and assert `Upload-Offset == "0"`.
 
-- [ ] **Step 3: Add raw checksum trailer probe**
+- [x] **Step 3: Add raw checksum trailer probe**
 
 Create `tests/probes/checksum_trailer.py` with raw socket logic:
 
@@ -852,7 +852,7 @@ if "Upload-Offset: 12" not in response and "upload-offset: 12" not in response.l
 
 Implementation note: parse response headers case-insensitively and do not assume one `recv(4096)` contains the full response header block.
 
-- [ ] **Step 4: Run Dagger verification**
+- [x] **Step 4: Run Dagger verification**
 
 ```bash
 dagger call run --server=TUSD --report=JUNIT export --path results/tusd-checksum-strict
@@ -862,7 +862,7 @@ dagger call run --server=TUS_NODE_SERVER --report=JUNIT export --path results/tu
 
 Expected: if a server advertises `checksum-trailer` and fails the probe, verify source before adding a skip. If a server does not advertise `checksum-trailer`, the probe exits successfully without testing behavior.
 
-- [ ] **Step 5: Commit checksum coverage**
+- [x] **Step 5: Commit checksum coverage**
 
 ```bash
 git add tests/extensions/checksum tests/probes/checksum_trailer.py docs/server-noncompliance.md tests/skips
