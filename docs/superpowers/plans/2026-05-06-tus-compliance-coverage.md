@@ -666,7 +666,7 @@ git commit -m "test: cover tus header grammar and response version headers"
 - Create: `tests/extensions/creation/ext-create-015-metadata-comma-key-rejected.hurl`
 - Create: `tests/probes/options_headers.py`
 
-- [ ] **Step 1: Add missing length/defer creation test**
+- [x] **Step 1: Add missing length/defer creation test**
 
 Create `ext-create-012-requires-length-or-defer.hurl`:
 
@@ -679,13 +679,13 @@ Tus-Resumable: {{tus_version}}
 HTTP 400
 ```
 
-- [ ] **Step 2: Add invalid defer value tests**
+- [x] **Step 2: Add invalid defer value tests**
 
 Create `ext-defer-006-invalid-value-zero.hurl` with `Upload-Defer-Length: 0` and `HTTP 400`.
 
 Create `ext-defer-007-invalid-value-token.hurl` with `Upload-Defer-Length: true` and `HTTP 400`.
 
-- [ ] **Step 3: Add exact metadata echo test**
+- [x] **Step 3: Add exact metadata echo test**
 
 Create `ext-create-013-metadata-exact-head.hurl` with `Upload-Metadata: filename dGVzdC50eHQ=,filetype dGV4dC9wbGFpbg==` and assert on `HEAD`:
 
@@ -693,13 +693,13 @@ Create `ext-create-013-metadata-exact-head.hurl` with `Upload-Metadata: filename
 header "Upload-Metadata" == "filename dGVzdC50eHQ=,filetype dGV4dC9wbGFpbg=="
 ```
 
-- [ ] **Step 4: Add invalid metadata key tests**
+- [x] **Step 4: Add invalid metadata key tests**
 
 Create `ext-create-014-metadata-empty-key-rejected.hurl` with `Upload-Metadata:  dGVzdA==` and expect `HTTP 400`.
 
 Create `ext-create-015-metadata-comma-key-rejected.hurl` with `Upload-Metadata: bad,key dGVzdA==` and expect `HTTP 400`.
 
-- [ ] **Step 5: Add optional OPTIONS header probe**
+- [x] **Step 5: Add optional OPTIONS header probe**
 
 Create `tests/probes/options_headers.py` to request `OPTIONS ${TUS_BASE_URL:-http://tus:8080/files}`, then validate only headers that are present:
 
@@ -736,11 +736,11 @@ if "tus-extension" in headers:
         raise SystemExit("creation-with-upload advertised without creation")
 ```
 
-- [ ] **Step 6: Tighten max-size enforcement if advertised**
+- [x] **Step 6: Tighten max-size enforcement if advertised**
 
-Extend `tests/probes/options_headers.py` to create an upload with `Upload-Length: Tus-Max-Size + 1` whenever `Tus-Max-Size` is present and assert `413`. Leave `tests/extensions/creation/ext-create-007-exceeds-max-size.hurl` as the broad smoke test unless the probe reveals a test-runner bug.
+Extend `tests/probes/options_headers.py` to validate `Tus-Max-Size` whenever present, and create an upload with `Upload-Length: Tus-Max-Size + 1` to assert `413` when `creation` is advertised. Leave `tests/extensions/creation/ext-create-007-exceeds-max-size.hurl` as the broad smoke test unless the probe reveals a test-runner bug.
 
-- [ ] **Step 7: Run Dagger verification**
+- [x] **Step 7: Run Dagger verification**
 
 ```bash
 dagger call run --server=TUSD --report=JUNIT export --path results/tusd-creation-strict
@@ -748,7 +748,7 @@ dagger call run --server=RUSTUS --report=JUNIT export --path results/rustus-crea
 dagger call run --server=TUS_NODE_SERVER --report=JUNIT export --path results/tus-node-creation-strict
 ```
 
-- [ ] **Step 8: Commit creation coverage**
+- [x] **Step 8: Commit creation coverage**
 
 ```bash
 git add tests/extensions/creation tests/extensions/creation-defer-length tests/probes/options_headers.py docs/server-noncompliance.md tests/skips

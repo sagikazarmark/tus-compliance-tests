@@ -55,6 +55,10 @@ PY
 from pathlib import Path
 Path('results/checksum-trailer-ran.txt').write_text('ran\n')
 PY
+  cat > "$root/tests/probes/options_headers.py" <<'PY'
+from pathlib import Path
+Path('results/options-headers-ran.txt').write_text('ran\n')
+PY
 
   cat > "$root/bin/hurl" <<'SH'
 #!/bin/sh
@@ -138,7 +142,7 @@ test_probe_paths_are_selectable_and_skippable() {
   root=$(mktemp -d)
   make_fixture "$root"
   printf 'tests/probes/probe.py\n' > "$root/tests/skips/tusd.txt"
-  run_fixture "$root" tests/probes
+  run_fixture "$root" tests/probes/probe.py
   assert_file_contains "$root/results/all-tusd.txt" "tests/probes/probe.py"
   assert_file_contains "$root/results/skipped-tusd.txt" "tests/probes/probe.py"
   assert_file_contains "$root/results/status-tusd.txt" "0"
@@ -155,6 +159,72 @@ test_known_probe_requires_advertised_extension() {
   assert_empty_file "$root/results/raw-active-tusd.txt"
   assert_empty_file "$root/results/active-tusd.txt"
   assert_file_contains "$root/results/status-tusd.txt" "0"
+}
+
+test_options_probe_does_not_require_creation() {
+  root=$(mktemp -d)
+  make_fixture "$root"
+  run_fixture "$root" tests/probes/options_headers.py
+  assert_file_contains "$root/results/all-tusd.txt" "tests/probes/options_headers.py"
+  assert_file_contains "$root/results/active-tusd.txt" "tests/probes/options_headers.py"
+  assert_file_not_contains "$root/results/unsupported-tusd.txt" "tests/probes/options_headers.py"
+  assert_file_contains "$root/results/status-tusd.txt" "0"
+}
+
+test_options_probe_skips_max_size_post_without_creation() {
+  python3 - "$REPO_ROOT/tests/probes/options_headers.py" <<'PY'
+import os
+import subprocess
+import sys
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+
+probe = sys.argv[1]
+
+
+class Handler(BaseHTTPRequestHandler):
+    saw_post = False
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Tus-Version", "1.0.0")
+        self.send_header("Tus-Max-Size", "10")
+        self.end_headers()
+
+    def do_POST(self):
+        Handler.saw_post = True
+        self.send_response(404)
+        self.end_headers()
+
+    def log_message(self, _format, *args):
+        pass
+
+
+server = HTTPServer(("127.0.0.1", 0), Handler)
+thread = threading.Thread(target=server.serve_forever)
+thread.start()
+try:
+    env = os.environ.copy()
+    env["TUS_BASE_URL"] = f"http://127.0.0.1:{server.server_port}/files"
+    result = subprocess.run(
+        [sys.executable, probe],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+finally:
+    server.shutdown()
+    thread.join()
+
+if result.returncode != 0:
+    sys.stderr.write(result.stdout)
+    sys.stderr.write(result.stderr)
+    raise SystemExit("options_headers.py failed without creation advertisement")
+if Handler.saw_post:
+    raise SystemExit("options_headers.py sent POST without creation advertisement")
+PY
 }
 
 test_active_probe_runs_when_selected() {
@@ -190,6 +260,8 @@ test_skips_apply_after_unsupported_with_exact_matching
 test_missing_skip_file_is_empty_report
 test_probe_paths_are_selectable_and_skippable
 test_known_probe_requires_advertised_extension
+test_options_probe_does_not_require_creation
+test_options_probe_skips_max_size_post_without_creation
 test_active_probe_runs_when_selected
 test_missing_explicit_probe_path_is_ignored
 test_invalid_server_name_is_rejected

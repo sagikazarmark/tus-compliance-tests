@@ -114,9 +114,6 @@ extension_for_path() {
     tests/probes/expiration_lifecycle.py)
       printf '%s\n' "expiration"
       ;;
-    tests/probes/options_headers.py)
-      printf '%s\n' "creation"
-      ;;
     tests/extensions/*/*)
       rest=${1#tests/extensions/}
       printf '%s\n' "${rest%%/*}"
