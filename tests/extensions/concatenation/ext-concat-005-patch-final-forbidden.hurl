@@ -46,7 +46,8 @@ data
 
 HTTP 403
 
-# Final and partial offsets should remain unchanged after the forbidden PATCH.
+# Final offset should remain unchanged after the forbidden PATCH.
+# The server MAY delete partial uploads after concatenation, so this test does not require the partial URL to remain readable.
 HEAD {{final_url}}
 Tus-Resumable: {{tus_version}}
 
@@ -56,12 +57,3 @@ HTTP *
 status toString matches /^(200|204)$/
 header "Upload-Offset" == "6"
 header "Upload-Length" == "6"
-
-HEAD {{partial_url}}
-Tus-Resumable: {{tus_version}}
-
-HTTP *
-
-[Asserts]
-status toString matches /^(200|204)$/
-header "Upload-Offset" == "6"

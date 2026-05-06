@@ -1,6 +1,6 @@
 # CP-PATCH-011: Upload-Offset must not be negative
 # Negative Upload-Offset values MUST be rejected and MUST NOT update upload state
-# Spec: Upload-Offset is a non-negative integer; this malformed value requires HTTP 400 in this suite.
+# Spec: Upload-Offset is a non-negative integer; exact malformed-header status is not specified.
 
 # Step 1: Create an upload
 POST {{base_url}}
@@ -22,7 +22,11 @@ Content-Type: application/offset+octet-stream
 test
 ```
 
-HTTP 400
+HTTP *
+
+[Asserts]
+status >= 400
+status < 500
 
 # Step 3: Verify offset was NOT updated
 HEAD {{upload_url}}

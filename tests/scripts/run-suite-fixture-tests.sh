@@ -258,6 +258,238 @@ if Handler.saw_post:
 PY
 }
 
+test_checksum_trailer_probe_uses_absolute_location_authority() {
+  python3 - "$REPO_ROOT/tests/probes/checksum_trailer.py" <<'PY'
+import os
+import subprocess
+import sys
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+
+probe = sys.argv[1]
+
+
+class UploadHandler(BaseHTTPRequestHandler):
+    saw_patch = False
+
+    def do_PATCH(self):
+        UploadHandler.saw_patch = True
+        self.send_response(204)
+        self.send_header("Tus-Resumable", "1.0.0")
+        self.send_header("Upload-Offset", "12")
+        self.end_headers()
+
+    def log_message(self, _format, *args):
+        pass
+
+
+upload_server = ThreadingHTTPServer(("127.0.0.1", 0), UploadHandler)
+
+
+class BaseHandler(BaseHTTPRequestHandler):
+    saw_wrong_patch = False
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Tus-Version", "1.0.0")
+        self.send_header("Tus-Extension", "checksum-trailer")
+        self.end_headers()
+
+    def do_POST(self):
+        self.send_response(201)
+        self.send_header("Tus-Resumable", "1.0.0")
+        self.send_header("Location", f"http://127.0.0.1:{upload_server.server_port}/uploads/1")
+        self.end_headers()
+
+    def do_PATCH(self):
+        BaseHandler.saw_wrong_patch = True
+        self.send_response(500)
+        self.end_headers()
+
+    def log_message(self, _format, *args):
+        pass
+
+
+base_server = ThreadingHTTPServer(("127.0.0.1", 0), BaseHandler)
+threads = [threading.Thread(target=server.serve_forever) for server in (upload_server, base_server)]
+for thread in threads:
+    thread.start()
+
+try:
+    env = os.environ.copy()
+    env["TUS_BASE_URL"] = f"http://127.0.0.1:{base_server.server_port}/files"
+    result = subprocess.run(
+        [sys.executable, probe],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+finally:
+    for server in (base_server, upload_server):
+        server.shutdown()
+    for thread in threads:
+        thread.join()
+
+if result.returncode != 0:
+    sys.stderr.write(result.stdout)
+    sys.stderr.write(result.stderr)
+    raise SystemExit("checksum_trailer.py failed with absolute Location")
+if BaseHandler.saw_wrong_patch:
+    raise SystemExit("checksum_trailer.py sent PATCH to the base authority")
+if not UploadHandler.saw_patch:
+    raise SystemExit("checksum_trailer.py did not PATCH the absolute Location authority")
+PY
+}
+
+test_expiration_probe_uses_absolute_location_authority() {
+  python3 - "$REPO_ROOT/tests/probes/expiration_lifecycle.py" <<'PY'
+import os
+import subprocess
+import sys
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+
+probe = sys.argv[1]
+
+
+class UploadHandler(BaseHTTPRequestHandler):
+    saw_patch = False
+
+    def do_PATCH(self):
+        UploadHandler.saw_patch = True
+        self.send_response(204)
+        self.send_header("Tus-Resumable", "1.0.0")
+        self.send_header("Upload-Offset", "13")
+        self.send_header("Upload-Expires", "Tue, 15 Nov 1994 08:12:31 GMT")
+        self.end_headers()
+
+    def log_message(self, _format, *args):
+        pass
+
+
+upload_server = ThreadingHTTPServer(("127.0.0.1", 0), UploadHandler)
+
+
+class BaseHandler(BaseHTTPRequestHandler):
+    saw_wrong_patch = False
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Tus-Version", "1.0.0")
+        self.send_header("Tus-Extension", "expiration")
+        self.end_headers()
+
+    def do_POST(self):
+        self.send_response(201)
+        self.send_header("Tus-Resumable", "1.0.0")
+        self.send_header("Location", f"http://127.0.0.1:{upload_server.server_port}/uploads/1")
+        self.end_headers()
+
+    def do_PATCH(self):
+        BaseHandler.saw_wrong_patch = True
+        self.send_response(500)
+        self.end_headers()
+
+    def log_message(self, _format, *args):
+        pass
+
+
+base_server = ThreadingHTTPServer(("127.0.0.1", 0), BaseHandler)
+threads = [threading.Thread(target=server.serve_forever) for server in (upload_server, base_server)]
+for thread in threads:
+    thread.start()
+
+try:
+    env = os.environ.copy()
+    env["TUS_BASE_URL"] = f"http://127.0.0.1:{base_server.server_port}/files"
+    env["TUS_EXPIRATION_WAIT_SECONDS"] = "0"
+    result = subprocess.run(
+        [sys.executable, probe],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+finally:
+    for server in (base_server, upload_server):
+        server.shutdown()
+    for thread in threads:
+        thread.join()
+
+if result.returncode != 0:
+    sys.stderr.write(result.stdout)
+    sys.stderr.write(result.stderr)
+    raise SystemExit("expiration_lifecycle.py failed with absolute Location")
+if BaseHandler.saw_wrong_patch:
+    raise SystemExit("expiration_lifecycle.py sent PATCH to the base authority")
+if not UploadHandler.saw_patch:
+    raise SystemExit("expiration_lifecycle.py did not PATCH the absolute Location authority")
+PY
+}
+
+test_expiration_probe_allows_missing_expires_without_wait_window() {
+  python3 - "$REPO_ROOT/tests/probes/expiration_lifecycle.py" <<'PY'
+import os
+import subprocess
+import sys
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+
+probe = sys.argv[1]
+
+
+class Handler(BaseHTTPRequestHandler):
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Tus-Version", "1.0.0")
+        self.send_header("Tus-Extension", "expiration")
+        self.end_headers()
+
+    def do_POST(self):
+        self.send_response(201)
+        self.send_header("Tus-Resumable", "1.0.0")
+        self.send_header("Location", "/files/1")
+        self.end_headers()
+
+    def do_PATCH(self):
+        self.send_response(204)
+        self.send_header("Tus-Resumable", "1.0.0")
+        self.send_header("Upload-Offset", "13")
+        self.end_headers()
+
+    def log_message(self, _format, *args):
+        pass
+
+
+server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+thread = threading.Thread(target=server.serve_forever)
+thread.start()
+try:
+    env = os.environ.copy()
+    env["TUS_BASE_URL"] = f"http://127.0.0.1:{server.server_port}/files"
+    env["TUS_EXPIRATION_WAIT_SECONDS"] = "0"
+    result = subprocess.run(
+        [sys.executable, probe],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+finally:
+    server.shutdown()
+    thread.join()
+
+if result.returncode != 0:
+    sys.stderr.write(result.stdout)
+    sys.stderr.write(result.stderr)
+    raise SystemExit("expiration_lifecycle.py required Upload-Expires without a wait window")
+PY
+}
+
 test_active_probe_runs_when_selected() {
   root=$(mktemp -d)
   make_fixture "$root"
@@ -294,6 +526,9 @@ test_probe_paths_are_selectable_and_skippable
 test_known_probe_requires_advertised_extension
 test_options_probe_does_not_require_creation
 test_options_probe_skips_max_size_post_without_creation
+test_checksum_trailer_probe_uses_absolute_location_authority
+test_expiration_probe_uses_absolute_location_authority
+test_expiration_probe_allows_missing_expires_without_wait_window
 test_active_probe_runs_when_selected
 test_missing_explicit_probe_path_is_ignored
 test_invalid_server_name_is_rejected

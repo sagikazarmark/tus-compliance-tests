@@ -20,5 +20,4 @@ HTTP *
 
 [Asserts]
 # Accept either 201 (no limit) or 413 (exceeds limit)
-status >= 200
-status <= 500
+status toString matches /^(201|413)$/

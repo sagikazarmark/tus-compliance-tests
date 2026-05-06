@@ -1,5 +1,6 @@
 # EXT-TERM-006: X-HTTP-Method-Override DELETE
 # Termination implementations MUST honor method override for DELETE.
+# Future requests SHOULD return 404/410, but any 4xx rejection proves the URL is unavailable.
 
 POST {{base_url}}
 Tus-Resumable: {{tus_version}}
@@ -21,4 +22,5 @@ Tus-Resumable: {{tus_version}}
 
 HTTP *
 [Asserts]
-status toString matches /^(404|410)$/
+status >= 400
+status < 500

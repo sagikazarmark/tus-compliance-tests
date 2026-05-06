@@ -26,8 +26,8 @@ def fail(problem, likely_cause, fix, docs=DOCS):
     )
 
 
-def parsed_target():
-    parsed = urlparse(BASE_URL)
+def parse_http_url(url, default_path="/"):
+    parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         fail(
             f"Unsupported TUS_BASE_URL scheme: {parsed.scheme!r}.",
@@ -37,20 +37,41 @@ def parsed_target():
 
     host = parsed.hostname or "tus"
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
-    path = parsed.path or "/files"
+    path = parsed.path or default_path
     if parsed.query:
         path = f"{path}?{parsed.query}"
     return parsed.scheme, host, port, path
 
 
-def http_connection():
-    scheme, host, port, _ = parsed_target()
+def parsed_target():
+    return parse_http_url(BASE_URL, "/files")
+
+
+def http_connection_for(scheme, host, port):
     conn_cls = http.client.HTTPSConnection if scheme == "https" else http.client.HTTPConnection
     return conn_cls(host, port, timeout=10)
 
 
+def http_connection():
+    scheme, host, port, _ = parsed_target()
+    return http_connection_for(scheme, host, port)
+
+
 def request(method, path, headers=None, body=None):
     conn = http_connection()
+    try:
+        conn.request(method, path, body=body, headers=headers or {})
+        res = conn.getresponse()
+        response_headers = {k.lower(): v.strip() for k, v in res.getheaders()}
+        response_body = res.read()
+        return res.status, response_headers, response_body
+    finally:
+        conn.close()
+
+
+def request_url(method, url, headers=None, body=None):
+    scheme, host, port, path = parse_http_url(url)
+    conn = http_connection_for(scheme, host, port)
     try:
         conn.request(method, path, body=body, headers=headers or {})
         res = conn.getresponse()
@@ -75,14 +96,9 @@ def options_extensions():
     return {part.strip().lower() for part in extensions.split(",") if part.strip()}
 
 
-def normalize_location(location):
+def resolve_location(location):
     resolved = urlparse(urljoin(BASE_URL.rstrip("/") + "/", location))
-    path = resolved.path or "/"
-    if not path.startswith("/"):
-        path = f"/{path}"
-    if resolved.query:
-        path = f"{path}?{resolved.query}"
-    return path
+    return resolved.geturl()
 
 
 def create_upload():
@@ -103,13 +119,13 @@ def create_upload():
             "Ensure creation requests with Upload-Length are supported at TUS_BASE_URL.",
             "docs/protocol-coverage-audit.md",
         )
-    return normalize_location(location)
+    return resolve_location(location)
 
 
-def patch_upload(upload_path):
-    status, headers, body = request(
+def patch_upload(upload_url, require_expires):
+    status, headers, body = request_url(
         "PATCH",
-        upload_path,
+        upload_url,
         headers={
             "Tus-Resumable": TUS_VERSION,
             "Upload-Offset": "0",
@@ -126,10 +142,17 @@ def patch_upload(upload_path):
         )
 
     expires = headers.get("upload-expires")
-    if not expires or not HTTP_DATE.fullmatch(expires):
+    if require_expires and not expires:
         fail(
-            f"PATCH missing valid Upload-Expires: {headers}.",
-            "The server tracks expiration but did not return an RFC 9110 HTTP-date on PATCH.",
+            f"PATCH missing Upload-Expires: {headers}.",
+            "The expiration probe was configured with a wait window, so this upload is expected to expire.",
+            "Return Upload-Expires for expiring unfinished uploads or set TUS_EXPIRATION_WAIT_SECONDS=0 for smoke coverage.",
+            "docs/protocol-coverage-audit.md",
+        )
+    if expires and not HTTP_DATE.fullmatch(expires):
+        fail(
+            f"PATCH returned invalid Upload-Expires: {headers}.",
+            "The server returned Upload-Expires but not as an RFC 9110 HTTP-date.",
             "Return Upload-Expires in IMF-fixdate form, for example Tue, 15 Nov 1994 08:12:31 GMT.",
             "docs/protocol-coverage-audit.md",
         )
@@ -147,8 +170,7 @@ def env_seconds(name, default):
         )
 
 
-def wait_for_expiration(upload_path):
-    wait_seconds = env_seconds("TUS_EXPIRATION_WAIT_SECONDS", "0")
+def wait_for_expiration(upload_url, wait_seconds):
     if wait_seconds <= 0:
         return
 
@@ -158,9 +180,9 @@ def wait_for_expiration(upload_path):
 
     last_status = None
     while time.monotonic() <= deadline:
-        status, _, _ = request(
+        status, _, _ = request_url(
             "HEAD",
-            upload_path,
+            upload_url,
             headers={"Tus-Resumable": TUS_VERSION},
         )
         last_status = status
@@ -180,5 +202,6 @@ if "expiration" not in options_extensions():
     raise SystemExit(0)
 
 upload_path = create_upload()
-patch_upload(upload_path)
-wait_for_expiration(upload_path)
+wait_seconds = env_seconds("TUS_EXPIRATION_WAIT_SECONDS", "0")
+patch_upload(upload_path, require_expires=wait_seconds > 0)
+wait_for_expiration(upload_path, wait_seconds)

@@ -6,7 +6,11 @@
 POST {{base_url}}
 Upload-Length: 100
 
-HTTP 412
+HTTP *
+
+[Asserts]
+status toString matches /^(400|412)$/
+header "Location" not exists
 
 # Note: Error response format is implementation-specific
 # Best practice: Include machine-readable error code and human-readable message

@@ -1,6 +1,6 @@
 # EXT-EXPIRE-002: Upload-Expires in PATCH response
-# Servers advertising expiration and tracking unfinished upload expiry MUST return Upload-Expires on PATCH.
-# Spec: "If a PATCH request is issued against an upload with a known expiration date, the Upload-Expires header MUST be included in the response."
+# Servers MUST return Upload-Expires on PATCH only if this upload is going to expire.
+# Strict configured-expiration validation lives in tests/probes/expiration_lifecycle.py.
 
 # Create upload
 POST {{base_url}}
@@ -23,7 +23,3 @@ test data
 ```
 
 HTTP 204
-
-[Asserts]
-header "Upload-Expires" exists
-header "Upload-Expires" matches "^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), [0-9]{2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) [0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2} GMT$"

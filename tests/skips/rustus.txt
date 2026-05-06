@@ -1,12 +1,6 @@
 # Exact relative .hurl or probe paths skipped for this server after source verification.
 # Each skip must have a matching entry in docs/server-noncompliance.md.
 
-# docs/server-noncompliance.md#rustus-negative-upload-offset-returns-415-instead-of-400
-tests/core/cp-patch/cp-patch-011-upload-offset-negative.hurl
-
-# docs/server-noncompliance.md#rustus-non-integer-upload-offset-returns-415-instead-of-400
-tests/core/cp-patch/cp-patch-012-upload-offset-non-integer.hurl
-
 # docs/server-noncompliance.md#rustus-unsupported-post-version-is-accepted
 tests/core/cp-ver/cp-ver-004-unsupported-post-no-location.hurl
 

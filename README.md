@@ -9,12 +9,12 @@ A comprehensive test suite for validating tus resumable upload protocol v1.0.0 s
 
 The [test suite](tests/) includes:
 
-- **Core Protocol Tests** - Required for all implementations (27 tests)
-- **Extension Tests** - Modular tests for each tus extension (52 tests)
+- **Core Protocol Tests** - Required for all implementations (34 tests)
+- **Extension Tests** - Modular tests for each tus extension (67 tests)
 - **Scenario Tests** - End-to-end workflow validation (13 tests)
 - **Optional Tests** - Behavioral tests for undefined spec areas (31 tests)
 
-**Total: 123 tests**
+**Total: 145 tests**
 
 ## Requirements
 

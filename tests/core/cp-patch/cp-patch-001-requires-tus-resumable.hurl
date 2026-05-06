@@ -1,5 +1,5 @@
 # CP-PATCH-001: PATCH requires Tus-Resumable
-# Request without Tus-Resumable must be rejected without mutating upload state.
+# Request without Tus-Resumable must be rejected without mutating upload state; exact status is not specified.
 # Spec: "The Tus-Resumable header MUST be included in every request and response
 #        except for OPTIONS requests."
 
@@ -24,7 +24,10 @@ Content-Type: application/offset+octet-stream
 test data
 ```
 
-HTTP 412
+HTTP *
+
+[Asserts]
+status toString matches /^(400|412)$/
 
 HEAD {{upload_url}}
 Tus-Resumable: {{tus_version}}

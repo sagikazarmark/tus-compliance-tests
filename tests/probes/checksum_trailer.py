@@ -4,7 +4,7 @@ import http.client
 import os
 import socket
 import ssl
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 
 TUS_VERSION = "1.0.0"
@@ -21,9 +21,8 @@ def fail(problem, likely_cause, fix, docs=DOCS):
     )
 
 
-def parsed_target():
-    base_url = os.environ.get("TUS_BASE_URL", "http://tus:8080/files")
-    parsed = urlparse(base_url)
+def parse_http_url(url, default_path="/"):
+    parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         fail(
             f"Unsupported TUS_BASE_URL scheme: {parsed.scheme!r}.",
@@ -33,16 +32,29 @@ def parsed_target():
 
     host = parsed.hostname or "tus"
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
-    path = parsed.path or "/files"
+    path = parsed.path or default_path
     if parsed.query:
         path = f"{path}?{parsed.query}"
     return parsed.scheme, host, port, path
 
 
-def http_connection():
-    scheme, host, port, _ = parsed_target()
+def parsed_target():
+    return parse_http_url(os.environ.get("TUS_BASE_URL", "http://tus:8080/files"), "/files")
+
+
+def http_connection_for(scheme, host, port):
     conn_cls = http.client.HTTPSConnection if scheme == "https" else http.client.HTTPConnection
     return conn_cls(host, port, timeout=10)
+
+
+def http_connection():
+    scheme, host, port, _ = parsed_target()
+    return http_connection_for(scheme, host, port)
+
+
+def resolve_location(location):
+    base_url = os.environ.get("TUS_BASE_URL", "http://tus:8080/files")
+    return urljoin(base_url.rstrip("/") + "/", location)
 
 
 def options_extensions():
@@ -93,16 +105,7 @@ def create_upload():
             "docs/protocol-coverage-audit.md",
         )
 
-    if location.startswith("/"):
-        return location
-
-    parsed_location = urlparse(location)
-    path = parsed_location.path or "/"
-    if not path.startswith("/"):
-        path = f"/{path}"
-    if parsed_location.query:
-        path = f"{path}?{parsed_location.query}"
-    return path
+    return resolve_location(location)
 
 
 def parse_header_block(header_block):
@@ -116,9 +119,10 @@ def parse_header_block(header_block):
     return lines[0], headers
 
 
-def raw_patch_with_trailer(path, checksum):
-    scheme, host, port, _ = parsed_target()
-    host_header = host if port in (80, 443) else f"{host}:{port}"
+def raw_patch_with_trailer(upload_url, checksum):
+    scheme, host, port, path = parse_http_url(upload_url)
+    default_port = 443 if scheme == "https" else 80
+    host_header = host if port == default_port else f"{host}:{port}"
     request = (
         f"PATCH {path} HTTP/1.1\r\n"
         f"Host: {host_header}\r\n"

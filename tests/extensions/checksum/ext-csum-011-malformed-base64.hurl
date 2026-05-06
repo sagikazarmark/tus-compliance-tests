@@ -24,3 +24,12 @@ Hello, tus!
 ```
 
 HTTP 400
+
+# Verify offset was NOT updated
+HEAD {{upload_url}}
+Tus-Resumable: {{tus_version}}
+
+HTTP 200
+
+[Asserts]
+header "Upload-Offset" == "0"

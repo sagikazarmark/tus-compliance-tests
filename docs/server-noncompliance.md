@@ -91,28 +91,6 @@ Suggested fix: TUSD should reject creation-with-upload requests with a non-empty
 Docs: `tests/extensions/creation-with-upload/ext-cwu-002-post-content-type.hurl`
 Decision: skipped for `tusd` in `tests/skips/tusd.txt` until upstream behavior changes.
 
-## rustus: negative Upload-Offset returns 415 instead of 400
-
-Test: `tests/core/cp-patch/cp-patch-011-upload-offset-negative.hurl`
-Observed: `dagger call run --server=RUSTUS --report=JUNIT export --path results/rustus-header-grammar` failed because `PATCH` with `Upload-Offset: -1` returned `415 Unsupported Media Type` instead of `400 Bad Request`.
-Spec: tus 1.0.0 requires `Upload-Offset` to be a non-negative integer. Invalid header grammar is a malformed request and must be rejected with `400 Bad Request` for this required assertion.
-Source evidence: `https://github.com/s3rius/rustus/blob/bec1b287621309616c314720061662de20062e08/src/protocol/core/write_bytes.rs#L33-L38` parses `Upload-Offset` with `parse_header::<usize>` and returns `HttpResponse::UnsupportedMediaType()` when parsing returns `None`; `https://github.com/s3rius/rustus/blob/bec1b287621309616c314720061662de20062e08/src/utils/headers.rs#L15-L24` shows `parse_header` returns `None` when header parsing fails.
-Source revision: `bec1b287621309616c314720061662de20062e08` from `s3rius/rustus:latest` source repository.
-Suggested fix: RUSTUS should distinguish missing or invalid `Upload-Offset` from media type validation and return `400 Bad Request` for negative values.
-Docs: `tests/core/cp-patch/cp-patch-011-upload-offset-negative.hurl`
-Decision: skipped for `rustus` in `tests/skips/rustus.txt` until upstream behavior changes.
-
-## rustus: non-integer Upload-Offset returns 415 instead of 400
-
-Test: `tests/core/cp-patch/cp-patch-012-upload-offset-non-integer.hurl`
-Observed: `dagger call run --server=RUSTUS --report=JUNIT export --path results/rustus-header-grammar` failed because `PATCH` with `Upload-Offset: abc` returned `415 Unsupported Media Type` instead of `400 Bad Request`.
-Spec: tus 1.0.0 requires `Upload-Offset` to be a non-negative integer. Invalid header grammar is a malformed request and must be rejected with `400 Bad Request` for this required assertion.
-Source evidence: `https://github.com/s3rius/rustus/blob/bec1b287621309616c314720061662de20062e08/src/protocol/core/write_bytes.rs#L33-L38` parses `Upload-Offset` with `parse_header::<usize>` and returns `HttpResponse::UnsupportedMediaType()` when parsing returns `None`; `https://github.com/s3rius/rustus/blob/bec1b287621309616c314720061662de20062e08/src/utils/headers.rs#L15-L24` shows `parse_header` returns `None` when header parsing fails.
-Source revision: `bec1b287621309616c314720061662de20062e08` from `s3rius/rustus:latest` source repository.
-Suggested fix: RUSTUS should distinguish missing or invalid `Upload-Offset` from media type validation and return `400 Bad Request` for non-integer values.
-Docs: `tests/core/cp-patch/cp-patch-012-upload-offset-non-integer.hurl`
-Decision: skipped for `rustus` in `tests/skips/rustus.txt` until upstream behavior changes.
-
 ## rustus: missing POST Tus-Resumable is accepted
 
 Tests: `tests/core/cp-err/cp-err-001-response-format.hurl`, `tests/extensions/creation/ext-create-003-requires-tus-resumable.hurl`

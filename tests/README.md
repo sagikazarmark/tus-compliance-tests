@@ -106,6 +106,7 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 | [CP-OPT-003](core/cp-opt/cp-opt-003-version-preference.hurl) | Tus-Version preference order | Atomic | Versions MUST be ordered by server preference (most preferred first) |
 | [CP-OPT-004](core/cp-opt/cp-opt-004-tus-extension.hurl) | Tus-Extension header present | Atomic | If extensions supported, `Tus-Extension` header MUST list them |
 | [CP-OPT-005](core/cp-opt/cp-opt-005-tus-max-size.hurl) | Tus-Max-Size header format | Atomic | If present, `Tus-Max-Size` MUST be a non-negative integer |
+| [CP-OPT-006](core/cp-opt/cp-opt-006-ignore-tus-resumable.hurl) | OPTIONS ignores Tus-Resumable | Atomic | Server MUST ignore `Tus-Resumable` on OPTIONS |
 
 ### CP-HEAD: HEAD Request
 
@@ -113,9 +114,9 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 |----|-----------|------|-------------|
 | [CP-HEAD-001](core/cp-head/cp-head-001-upload-offset.hurl) | HEAD returns Upload-Offset | Atomic | Response MUST include `Upload-Offset` header |
 | [CP-HEAD-002](core/cp-head/cp-head-002-upload-length.hurl) | HEAD returns Upload-Length | Atomic | Response MUST include `Upload-Length` if known |
-| [CP-HEAD-003](core/cp-head/cp-head-003-requires-tus-resumable.hurl) | HEAD requires Tus-Resumable | Atomic | Request without `Tus-Resumable` MUST return 412 |
+| [CP-HEAD-003](core/cp-head/cp-head-003-requires-tus-resumable.hurl) | HEAD requires Tus-Resumable | Atomic | Request without `Tus-Resumable` MUST be rejected |
 | [CP-HEAD-004](core/cp-head/cp-head-004-cache-control.hurl) | HEAD Cache-Control header | Atomic | Response MUST include `Cache-Control: no-store` |
-| [CP-HEAD-005](core/cp-head/cp-head-005-non-existent.hurl) | HEAD on non-existent resource | Atomic | MUST return 404 Not Found |
+| [CP-HEAD-005](core/cp-head/cp-head-005-non-existent.hurl) | HEAD on non-existent resource | Atomic | SHOULD return 403, 404, or 410 without `Upload-Offset` |
 | [CP-HEAD-006](core/cp-head/cp-head-006-tus-resumable.hurl) | HEAD returns Tus-Resumable | Atomic | Response MUST include `Tus-Resumable` header |
 | [CP-HEAD-007](core/cp-head/cp-head-007-offset-zero.hurl) | HEAD offset zero for new upload | Atomic | New upload MUST report `Upload-Offset: 0` |
 
@@ -123,9 +124,9 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 
 | ID | Test Name | Type | Description |
 |----|-----------|------|-------------|
-| [CP-PATCH-001](core/cp-patch/cp-patch-001-requires-tus-resumable.hurl) | PATCH requires Tus-Resumable | Atomic | Request without `Tus-Resumable` MUST return 412 |
-| [CP-PATCH-002](core/cp-patch/cp-patch-002-requires-content-type.hurl) | PATCH requires Content-Type | Atomic | Missing or wrong `Content-Type` MUST return 415 Unsupported Media Type |
-| [CP-PATCH-003](core/cp-patch/cp-patch-003-wrong-content-type.hurl) | PATCH wrong Content-Type | Atomic | Wrong Content-Type MUST return 415 Unsupported Media Type |
+| [CP-PATCH-001](core/cp-patch/cp-patch-001-requires-tus-resumable.hurl) | PATCH requires Tus-Resumable | Atomic | Request without `Tus-Resumable` MUST be rejected without mutating offset |
+| [CP-PATCH-002](core/cp-patch/cp-patch-002-requires-content-type.hurl) | PATCH requires Content-Type | Atomic | Missing `Content-Type` SHOULD be rejected without mutating offset |
+| [CP-PATCH-003](core/cp-patch/cp-patch-003-wrong-content-type.hurl) | PATCH wrong Content-Type | Atomic | Wrong `Content-Type` SHOULD be rejected without mutating offset |
 | [CP-PATCH-004](core/cp-patch/cp-patch-004-requires-upload-offset.hurl) | PATCH requires Upload-Offset | Atomic | Missing `Upload-Offset` header MUST be rejected |
 | [CP-PATCH-005](core/cp-patch/cp-patch-005-offset-mismatch.hurl) | PATCH offset mismatch | Atomic | Mismatched offset MUST return 409 Conflict |
 | [CP-PATCH-006](core/cp-patch/cp-patch-006-success-204.hurl) | PATCH success returns 204 | Atomic | Successful PATCH MUST return 204 No Content |
@@ -133,6 +134,8 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 | [CP-PATCH-008](core/cp-patch/cp-patch-008-non-existent.hurl) | PATCH on non-existent resource | Atomic | SHOULD return 404 Not Found |
 | [CP-PATCH-009](core/cp-patch/cp-patch-009-returns-tus-resumable.hurl) | PATCH returns Tus-Resumable | Atomic | Response MUST include `Tus-Resumable` header |
 | [CP-PATCH-010](core/cp-patch/cp-patch-010-beyond-upload-length.hurl) | PATCH beyond Upload-Length | Atomic | Sending more bytes than declared MUST be rejected |
+| [CP-PATCH-011](core/cp-patch/cp-patch-011-upload-offset-negative.hurl) | Upload-Offset rejects negative value | Atomic | Negative `Upload-Offset` MUST be rejected without mutating offset |
+| [CP-PATCH-012](core/cp-patch/cp-patch-012-upload-offset-non-integer.hurl) | Upload-Offset rejects non-integer value | Atomic | Non-integer `Upload-Offset` MUST be rejected without mutating offset |
 
 ### CP-VER: Version Handling
 
@@ -141,6 +144,8 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 | [CP-VER-001](core/cp-ver/cp-ver-001-unsupported-version.hurl) | Unsupported version rejected | Atomic | Unknown `Tus-Resumable` version MUST return 412 |
 | [CP-VER-002](core/cp-ver/cp-ver-002-412-includes-tus-version.hurl) | 412 includes Tus-Version | Atomic | 412 response MUST include `Tus-Version` header with supported versions |
 | [CP-VER-003](core/cp-ver/cp-ver-003-version-1.0.0.hurl) | Version 1.0.0 supported | Atomic | Server MUST support version 1.0.0 |
+| [CP-VER-004](core/cp-ver/cp-ver-004-unsupported-post-no-location.hurl) | Unsupported POST version not processed | Atomic | Unsupported version MUST return 412 and not create an upload |
+| [CP-VER-005](core/cp-ver/cp-ver-005-unsupported-patch-no-mutation.hurl) | Unsupported PATCH version no mutation | Atomic | Unsupported version MUST return 412 and not advance offset |
 
 ### CP-ERR: Error Response Handling
 
@@ -148,6 +153,7 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 |----|-----------|------|-------------|
 | [CP-ERR-001](core/cp-err/cp-err-001-response-format.hurl) | Error response format | Atomic | Error responses SHOULD include descriptive body |
 | [CP-ERR-002](core/cp-err/cp-err-002-validation-errors.hurl) | Validation error details | Atomic | Validation errors SHOULD indicate which field/header failed |
+| [CP-ERR-003](core/cp-err/cp-err-003-upload-length-non-integer.hurl) | Upload-Length rejects non-integer value | Atomic | Non-integer `Upload-Length` MUST be rejected without creating an upload |
 
 ## Extension Test Modules
 
@@ -161,7 +167,7 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 |----|-----------|------|-------------|
 | [EXT-CREATE-001](extensions/creation/ext-create-001-post-creates.hurl) | POST creates upload | Atomic | POST with `Upload-Length` MUST return 201 Created |
 | [EXT-CREATE-002](extensions/creation/ext-create-002-returns-location.hurl) | POST returns Location | Atomic | 201 response MUST include `Location` header with upload URL |
-| [EXT-CREATE-003](extensions/creation/ext-create-003-requires-tus-resumable.hurl) | POST requires Tus-Resumable | Atomic | POST without `Tus-Resumable` MUST return 412 |
+| [EXT-CREATE-003](extensions/creation/ext-create-003-requires-tus-resumable.hurl) | POST requires Tus-Resumable | Atomic | POST without `Tus-Resumable` MUST be rejected without creating an upload |
 | [EXT-CREATE-004](extensions/creation/ext-create-004-upload-metadata.hurl) | POST with Upload-Metadata | Atomic | Server MUST accept valid `Upload-Metadata` header |
 | [EXT-CREATE-005](extensions/creation/ext-create-005-metadata-key-format.hurl) | POST metadata key format | Atomic | Metadata keys MUST be ASCII, non-empty, unique |
 | [EXT-CREATE-006](extensions/creation/ext-create-006-metadata-base64.hurl) | POST metadata value base64 | Atomic | Metadata values MUST be base64-encoded |
@@ -169,6 +175,11 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 | [EXT-CREATE-008](extensions/creation/ext-create-008-zero-length.hurl) | POST zero-length upload | Atomic | `Upload-Length: 0` MUST be accepted (empty file) |
 | [EXT-CREATE-009](extensions/creation/ext-create-009-location-absolute.hurl) | Location URL is resolvable | Atomic | `Location` header MUST be a resolvable URL (absolute or relative) |
 | [EXT-CREATE-010](extensions/creation/ext-create-010-metadata-head.hurl) | HEAD echoes Upload-Metadata | Atomic | HEAD response MUST include stored `Upload-Metadata` |
+| [EXT-CREATE-011](extensions/creation/ext-create-011-returns-tus-resumable.hurl) | POST returns Tus-Resumable | Atomic | Creation response MUST include `Tus-Resumable` |
+| [EXT-CREATE-012](extensions/creation/ext-create-012-requires-length-or-defer.hurl) | POST requires length or defer | Atomic | Creation request MUST include `Upload-Length` or `Upload-Defer-Length` |
+| [EXT-CREATE-013](extensions/creation/ext-create-013-metadata-exact-head.hurl) | HEAD echoes metadata exactly | Atomic | HEAD response MUST include metadata value supplied during creation |
+| [EXT-CREATE-014](extensions/creation/ext-create-014-metadata-empty-key-rejected.hurl) | Empty metadata key sentinel | Atomic | Empty metadata keys are invalid; servers may reject or ignore supplied metadata |
+| [EXT-CREATE-015](extensions/creation/ext-create-015-metadata-comma-key-rejected.hurl) | Comma metadata key sentinel | Atomic | Metadata keys MUST NOT contain commas; parse-ambiguous input is tracked as a sentinel |
 
 #### Scenario Tests
 
@@ -225,6 +236,8 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 | [EXT-DEFER-003](extensions/creation-defer-length/ext-defer-003-patch-sets-length.hurl) | PATCH sets Upload-Length | Atomic | First PATCH MAY include `Upload-Length` to set final size |
 | [EXT-DEFER-004](extensions/creation-defer-length/ext-defer-004-length-immutable.hurl) | Upload-Length immutable | Atomic | Once `Upload-Length` set, subsequent changes MUST be rejected |
 | [EXT-DEFER-005](extensions/creation-defer-length/ext-defer-005-mutual-exclusion.hurl) | Defer and Length mutual exclusion | Atomic | POST with both `Upload-Defer-Length` and `Upload-Length` MUST be rejected |
+| [EXT-DEFER-006](extensions/creation-defer-length/ext-defer-006-invalid-value-zero.hurl) | Upload-Defer-Length rejects 0 | Atomic | Values other than `1` should be rejected |
+| [EXT-DEFER-007](extensions/creation-defer-length/ext-defer-007-invalid-value-token.hurl) | Upload-Defer-Length rejects token | Atomic | Non-`1` token values should be rejected |
 
 ### Creation-With-Upload Extension
 
@@ -254,6 +267,10 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 | [EXT-CSUM-006](extensions/checksum/ext-csum-006-unknown-algorithm.hurl) | Unknown algorithm returns 400 | Atomic | Unsupported algorithm MUST return 400 Bad Request |
 | [EXT-CSUM-007](extensions/checksum/ext-csum-007-format-validation.hurl) | Checksum format validation | Atomic | Format MUST be `algorithm base64-hash` (space-separated) |
 | [EXT-CSUM-008](extensions/checksum/ext-csum-008-retry-after-failure.hurl) | Retry after checksum failure | Atomic | Client can retry same chunk after 460 response |
+| [EXT-CSUM-009](extensions/checksum/ext-csum-009-error-returns-tus-resumable.hurl) | Checksum error returns Tus-Resumable | Atomic | Error response MUST include `Tus-Resumable` |
+| [EXT-CSUM-010](extensions/checksum/ext-csum-010-malformed-missing-space.hurl) | Malformed checksum missing separator | Atomic | Malformed checksum tuple MUST be rejected without advancing offset |
+| [EXT-CSUM-011](extensions/checksum/ext-csum-011-malformed-base64.hurl) | Malformed checksum base64 | Atomic | Malformed checksum value MUST be rejected without advancing offset |
+| [EXT-CSUM-012](extensions/checksum/ext-csum-012-unknown-algorithm-no-offset-update.hurl) | Unknown checksum algorithm no offset update | Atomic | Unsupported algorithm MUST NOT advance offset |
 
 #### Scenario Tests
 
@@ -285,10 +302,12 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 | ID | Test Name | Type | Description |
 |----|-----------|------|-------------|
 | [EXT-TERM-001](extensions/termination/ext-term-001-delete-204.hurl) | DELETE returns 204 | Atomic | Successful DELETE MUST return 204 No Content |
-| [EXT-TERM-002](extensions/termination/ext-term-002-requires-tus-resumable.hurl) | DELETE requires Tus-Resumable | Atomic | DELETE without `Tus-Resumable` MUST return 412 |
-| [EXT-TERM-003](extensions/termination/ext-term-003-deleted-404-410.hurl) | Deleted resource returns 404/410 | Atomic | Subsequent HEAD/PATCH MUST return 404 or 410 |
-| [EXT-TERM-004](extensions/termination/ext-term-004-non-existent.hurl) | DELETE non-existent resource | Atomic | DELETE on missing resource MUST return 404 |
+| [EXT-TERM-002](extensions/termination/ext-term-002-requires-tus-resumable.hurl) | DELETE requires Tus-Resumable | Atomic | DELETE without `Tus-Resumable` MUST be rejected without deleting the upload |
+| [EXT-TERM-003](extensions/termination/ext-term-003-deleted-404-410.hurl) | Deleted resource remains unavailable | Atomic | Subsequent HEAD/PATCH SHOULD return 404 or 410 and must reject access |
+| [EXT-TERM-004](extensions/termination/ext-term-004-non-existent.hurl) | DELETE non-existent resource | Atomic | DELETE on missing resource SHOULD return 404 |
 | [EXT-TERM-005](extensions/termination/ext-term-005-completed-upload.hurl) | DELETE completed upload | Atomic | DELETE on completed upload SHOULD succeed |
+| [EXT-TERM-006](extensions/termination/ext-term-006-post-overrides-delete.hurl) | POST overrides DELETE | Atomic | `X-HTTP-Method-Override: DELETE` MUST be honored |
+| [EXT-TERM-007](extensions/termination/ext-term-007-returns-tus-resumable.hurl) | DELETE returns Tus-Resumable | Atomic | Successful DELETE response MUST include `Tus-Resumable` |
 
 ### Concatenation Extension
 
@@ -308,6 +327,8 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 | [EXT-CONCAT-008](extensions/concatenation/ext-concat-008-invalid-partial-url.hurl) | Invalid partial URL rejected | Atomic | Non-existent partial URL in final MUST be rejected |
 | [EXT-CONCAT-009](extensions/concatenation/ext-concat-009-partial-head-concat.hurl) | HEAD on partial returns Upload-Concat | Atomic | HEAD on a partial upload MUST include `Upload-Concat: partial` |
 | [EXT-CONCAT-010](extensions/concatenation/ext-concat-010-final-head-before-after.hurl) | HEAD on final after concatenation | Atomic | After concatenation, `Upload-Offset` and `Upload-Length` MUST be equal |
+| [EXT-CONCAT-011](extensions/concatenation/ext-concat-011-final-head-exact-concat.hurl) | Final HEAD preserves Upload-Concat | Atomic | Final HEAD MUST include the final `Upload-Concat` value |
+| [EXT-CONCAT-012](extensions/concatenation/ext-concat-012-final-does-not-inherit-partial-metadata.hurl) | Final metadata not inherited | Atomic | Final uploads SHALL NOT inherit partial upload metadata |
 
 #### Scenario Tests
 
@@ -334,9 +355,9 @@ The lower-level `test` function accepts a Dagger `Service` plus optional `extens
 | ID | Test Name | Type | Description |
 |----|-----------|------|-------------|
 | [EXT-EXPIRE-001](extensions/expiration/ext-expire-001-post-response.hurl) | Upload-Expires in POST response | Atomic | Creation response SHOULD include `Upload-Expires` header |
-| [EXT-EXPIRE-002](extensions/expiration/ext-expire-002-patch-response.hurl) | Upload-Expires in PATCH response | Atomic | PATCH response SHOULD include `Upload-Expires` header |
-| [EXT-EXPIRE-003](extensions/expiration/ext-expire-003-format.hurl) | Upload-Expires format | Atomic | Header MUST use RFC 9110 datetime format |
-| [EXT-EXPIRE-004](extensions/expiration/ext-expire-004-expired-404-410.hurl) | Expired upload returns 404/410 | Atomic | Access after expiration MUST return 404 or 410 |
+| [EXT-EXPIRE-002](extensions/expiration/ext-expire-002-patch-response.hurl) | Upload-Expires in PATCH response | Atomic | PATCH response MUST include `Upload-Expires` only for uploads that are going to expire |
+| [EXT-EXPIRE-003](extensions/expiration/ext-expire-003-format.hurl) | Upload-Expires format | Atomic | `Upload-Expires` MUST use RFC 9110 datetime format when present |
+| [EXT-EXPIRE-004](extensions/expiration/ext-expire-004-expired-404-410.hurl) | Expired upload returns 404/410 | Atomic | Access after expiration SHOULD return 404 or 410 |
 | [EXT-EXPIRE-005](extensions/expiration/ext-expire-005-410-tracked.hurl) | 410 for tracked expirations | Atomic | If server tracks expired uploads, SHOULD return 410 Gone |
 
 #### Scenario Tests
